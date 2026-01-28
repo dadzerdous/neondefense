@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Strike: Merge</title>
+    <style>
+        body { margin: 0; background: #020205; color: #0ff; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; user-select: none; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; font-weight: bold; letter-spacing: 1px; }
+        #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 20px; }
+        .btn { background: rgba(0, 255, 255, 0.1); border: 2px solid #0ff; color: #0ff; padding: 12px 24px; cursor: pointer; font-size: 14px; text-transform: uppercase; box-shadow: 0 0 10px #0ff; }
+        .btn:active { background: #0ff; color: #000; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        WAVE: <span id="waveTxt">1</span> | 
+        CREDITS: $<span id="creditTxt">50</span><br>
+        SHIELDS: <span id="shieldTxt">100%</span> | 
+        HEAT: <span id="heatTxt">0%</span>
+    </div>
+
+    <div id="controls">
+        <button class="btn" onclick="buyTurret()">Buy Turret ($15)</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Config
+    let width, height;
+    let credits = 50, wave = 1, shields = 100, heat = 0;
+    let overheated = false;
+    
+    // Game Objects
+    let hangar = Array(10).fill(null); // 10 slots
+    let rails = Array(3).fill(null);  // 3 active firing slots
+    let enemies = [];
+    let bullets = [];
+    let particles = [];
+    
+    // Interaction
+    let dragging = null, dragIdx = -1, dragFromHangar = true;
+    let mouseX = 0, mouseY = 0, isFiringBeam = false;
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Input
+    canvas.addEventListener('pointerdown', e => {
+        const x = e.clientX, y = e.clientY;
+        // Check Hangar Click
+        hangar.forEach((slot, i) => {
+            let sX = getSlotPos(i).x, sY = getSlotPos(i).y;
+            if (x > sX && x < sX+50 && y > sY && y < sY+50 && slot) {
+                dragging = slot; dragIdx = i; dragFromHangar = true;
+                hangar[i] = null;
+            }
+        });
+        // Check Rails Click
+        rails.forEach((slot, i) => {
+            let sX = getRailPos(i).x, sY = getRailPos(i).y;
+            if (x > sX && x < sX+60 && y > sY && y < sY+60 && slot) {
+                dragging = slot; dragIdx = i; dragFromHangar = false;
+                rails[i] = null;
+            }
+        });
+        if (!dragging) isFiringBeam = true;
+        updateMouse(e);
+    });
+
+    canvas.addEventListener('pointermove', e => { updateMouse(e); });
+    canvas.addEventListener('pointerup', e => {
+        if (dragging) {
+            let dropped = false;
+            // Try drop in Hangar
+            hangar.forEach((slot, i) => {
+                let sX = getSlotPos(i).x, sY = getSlotPos(i).y;
+                if (mouseX > sX && mouseX < sX+50 && mouseY > sY && mouseY < sY+50) {
+                    if (!slot) { hangar[i] = dragging; dropped = true; }
+                    else if (slot.level === dragging.level) {
+                        slot.level++; hangar[i] = slot; dropped = true;
+                        createExplosion(sX+25, sY+25, '#0ff', 15);
+                    }
+                }
+            });
+            // Try drop in Rail
+            rails.forEach((slot, i) => {
+                let sX = getRailPos(i).x, sY = getRailPos(i).y;
+                if (mouseX > sX && mouseX < sX+60 && mouseY > sY && mouseY < sY+60) {
+                    if (!slot) { rails[i] = dragging; dropped = true; }
+                    else { // Swap
+                        let old = rails[i]; rails[i] = dragging;
+                        returnToHangar(old); dropped = true;
+                    }
+                }
+            });
+
+            if (!dropped) returnToHangar(dragging);
+            dragging = null;
+        }
+        isFiringBeam = false;
+    });
+
+    function updateMouse(e) { mouseX = e.clientX; mouseY = e.clientY; }
+    function getSlotPos(i) { return { x: (width/2 - 135) + (i % 5)*55, y: height - 160 + (Math.floor(i/5)*55) }; }
+    function getRailPos(i) { return { x: (width/2 - 95) + (i*65), y: height - 250 }; }
+    function returnToHangar(item) {
+        let idx = hangar.findIndex(s => s === null);
+        if (idx !== -1) hangar[idx] = item;
+    }
+
+    function buyTurret() {
+        if (credits >= 15) {
+            let idx = hangar.findIndex(s => s === null);
+            if (idx !== -1) { credits -= 15; hangar[idx] = { level: 1, timer: 0 }; }
+        }
+    }
+
+    function createExplosion(x, y, color, count) {
+        for(let i=0; i<count; i++) particles.push({x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1, color});
+    }
+
+    function update() {
+        // Manual Beam
+        if (isFiringBeam && !overheated && !dragging) {
+            heat += 1.2;
+            if (heat >= 100) { heat = 100; overheated = true; isFiringBeam = false; }
+            enemies.forEach(en => {
+                if (Math.hypot(en.x - mouseX, en.y - mouseY) < 40) en.hp -= 0.5;
+            });
+        } else {
+            heat = Math.max(0, heat - 0.4);
+            if (heat === 0) overheated = false;
+        }
+
+        // Turret Firing (Only on Rails)
+        rails.forEach((slot, i) => {
+            if (slot) {
+                slot.timer++;
+                if (slot.timer > (30 / slot.level)) {
+                    let p = getRailPos(i);
+                    bullets.push({x: p.x+30, y: p.y, vy: -10, power: slot.level});
+                    slot.timer = 0;
+                }
+            }
+        });
+
+        // Bullets & Enemies
+        bullets.forEach((b, i) => {
+            b.y += b.vy;
+            if (b.y < 0) bullets.splice(i, 1);
+        });
+
+        if (Math.random() < 0.02 + (wave * 0.005)) {
+            enemies.push({x: Math.random()*width, y: -20, hp: 3 + wave, speed: 1 + (wave*0.1)});
+        }
+
+        enemies.forEach((en, i) => {
+            en.y += en.speed;
+            bullets.forEach((b, bi) => {
+                if (Math.hypot(en.x - b.x, en.y - b.y) < 20) {
+                    en.hp -= b.power; bullets.splice(bi, 1);
+                    createExplosion(en.x, en.y, '#f0f', 2);
+                }
+            });
+            if (en.hp <= 0) {
+                createExplosion(en.x, en.y, '#0f0', 8);
+                enemies.splice(i, 1); credits += 2;
+                if (enemies.length === 0 && Math.random() < 0.1) wave++;
+            }
+            if (en.y > height - 260) {
+                shields -= 10; enemies.splice(i, 1);
+                if (shields <= 0) { alert("Game Over! Wave: " + wave); location.reload(); }
+            }
+        });
+
+        particles.forEach((p, i) => {
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+            if (p.life <= 0) particles.splice(i, 1);
+        });
+
+        // UI
+        document.getElementById('waveTxt').innerText = wave;
+        document.getElementById('creditTxt').innerText = credits;
+        document.getElementById('shieldTxt').innerText = shields + "%";
+        document.getElementById('heatTxt').innerText = Math.floor(heat) + "%";
+        document.getElementById('heatTxt').style.color = overheated ? "#f0f" : "#0ff";
+    }
+
+    function draw() {
+        ctx.fillStyle = '#020205';
+        ctx.fillRect(0, 0, width, height);
+
+        // Grid lines (Neon feel)
+        ctx.strokeStyle = '#050a15';
+        for(let i=0; i<width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke(); }
+
+        // Draw Rails
+        rails.forEach((slot, i) => {
+            let p = getRailPos(i);
+            ctx.strokeStyle = '#0ff';
+            ctx.setLineDash([5, 5]);
+            ctx.strokeRect(p.x, p.y, 60, 60);
+            ctx.setLineDash([]);
+            if (slot) drawTurret(p.x+30, p.y+30, slot.level);
+        });
+
+        // Draw Hangar
+        hangar.forEach((slot, i) => {
+            let p = getSlotPos(i);
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+            ctx.strokeRect(p.x, p.y, 50, 50);
+            if (slot) drawTurret(p.x+25, p.y+25, slot.level);
+        });
+
+        // Manual Beam
+        if (isFiringBeam && !overheated && !dragging) {
+            ctx.shadowBlur = 15; ctx.shadowColor = '#f0f';
+            ctx.strokeStyle = '#f0f'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(width/2, height-250); ctx.lineTo(mouseX, mouseY); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        enemies.forEach(en => {
+            ctx.strokeStyle = '#0f0'; ctx.strokeRect(en.x-10, en.y-10, 20, 20);
+        });
+
+        bullets.forEach(b => {
+            ctx.fillStyle = '#ff0'; ctx.fillRect(b.x-2, b.y-5, 4, 10);
+        });
+
+        particles.forEach(p => {
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
+            ctx.fillRect(p.x, p.y, 3, 3);
+        });
+        ctx.globalAlpha = 1;
+
+        if (dragging) drawTurret(mouseX, mouseY, dragging.level);
+
+        requestAnimationFrame(() => { update(); draw(); });
+    }
+
+    function drawTurret(x, y, lvl) {
+        ctx.shadowBlur = 10; ctx.shadowColor = '#0ff';
+        ctx.strokeStyle = '#0ff'; ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (lvl === 1) ctx.arc(x, y, 15, 0, Math.PI*2);
+        else if (lvl === 2) ctx.strokeRect(x-15, y-15, 30, 30);
+        else ctx.moveTo(x, y-18), ctx.lineTo(x+18, y+15), ctx.lineTo(x-18, y+15), ctx.closePath();
+        ctx.stroke();
+        ctx.fillStyle = '#0ff';
+        ctx.font = "12px Arial";
+        ctx.fillText(lvl, x-4, y+5);
+        ctx.shadowBlur = 0;
+    }
+
+    draw();
+</script>
+</body>
+  </html>
+  
