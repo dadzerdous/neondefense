@@ -546,9 +546,10 @@
 
 <!-- Controls -->
 <div id="controls">
-  <button class="btn btn-kinetic" onclick="buyTurret()">⬡ BUY TURRET $15</button>
-  <button class="btn btn-sell"    onclick="toggleSellMode()">✕ SELL</button>
-  <button class="btn" style="color:var(--cyan)" onclick="openSkills()">⊕ SKILLS</button>
+  <button class="btn btn-kinetic" onclick="buyTurret()">BUY $15</button>
+  <button class="btn btn-sell"    onclick="toggleSellMode()">SELL</button>
+  <button class="btn" style="color:var(--cyan)" onclick="openSkills()">SKILLS</button>
+  <button class="btn" style="color:rgba(255,255,255,0.3);border-color:rgba(255,255,255,0.12)" onclick="quitToMenu()">MENU</button>
 </div>
 
 <!-- Skill Drawer (bottom sheet) -->
@@ -575,35 +576,153 @@
   <div class="overlay-sub" id="overlaySub">YOUR BASE HAS FALLEN</div>
   <div class="overlay-stat" id="overlayStat"></div>
   <button class="overlay-btn" id="overlayBtn" onclick="restartGame()">DEPLOY AGAIN</button>
+  <button class="overlay-btn" onclick="quitToMenu()" style="border-color:rgba(255,255,255,0.25);color:rgba(255,255,255,0.4);box-shadow:none;font-size:11px;padding:10px 30px;">MAIN MENU</button>
 </div>
 
-<!-- Splash Screen -->
-<div id="splash" style="
-  position:absolute; inset:0; background:#030610; z-index:300;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
-">
-  <div style="font-family:'Orbitron',monospace; font-size:13px; letter-spacing:6px; color:var(--cyan); opacity:0.5">ANTHROPIC DEFENSE SYSTEMS</div>
-  <div style="font-family:'Orbitron',monospace; font-size:52px; font-weight:900; color:var(--cyan); text-shadow:0 0 40px var(--cyan), 0 0 80px rgba(0,245,255,0.4); letter-spacing:4px; text-align:center; line-height:1.1">NEON<br>STRIKE</div>
-  <div style="font-family:'Orbitron',monospace; font-size:16px; letter-spacing:8px; color:var(--magenta); text-shadow:0 0 15px var(--magenta)">MERGE</div>
-  <div style="width:200px; height:1px; background:linear-gradient(90deg, transparent, var(--cyan), transparent); margin:8px 0;"></div>
-  <div style="font-family:'Share Tech Mono',monospace; font-size:11px; color:rgba(0,245,255,0.5); letter-spacing:2px; text-align:center; line-height:2">
-    DRAG TURRETS TO RAILS TO ACTIVATE<br>
-    MERGE SAME TYPE + LEVEL TO UPGRADE<br>
-    HOLD CANVAS TO FIRE BEAM<br>
-    ENEMY COLOR = DAMAGE WEAKNESS
+<!-- Main Menu -->
+<div id="splash" style="position:absolute;inset:0;background:#030610;z-index:300;display:flex;flex-direction:column;align-items:center;overflow:hidden;">
+
+  <!-- Logo -->
+  <div style="padding-top:clamp(20px,5vh,50px);text-align:center;flex-shrink:0;">
+    <div style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:6px;color:var(--cyan);opacity:0.4;margin-bottom:10px;">DEFENSE SYSTEMS v1.0</div>
+    <div style="font-family:'Orbitron',monospace;font-size:clamp(36px,8vw,64px);font-weight:900;color:var(--cyan);text-shadow:0 0 40px var(--cyan),0 0 80px rgba(0,245,255,0.3);letter-spacing:4px;line-height:1">NEON<br>STRIKE</div>
+    <div style="font-family:'Orbitron',monospace;font-size:14px;letter-spacing:10px;color:var(--magenta);text-shadow:0 0 15px var(--magenta);margin-top:6px;">MERGE</div>
   </div>
-  <div style="margin-top:10px; font-family:'Share Tech Mono',monospace; font-size:10px; color:rgba(255,255,255,0.3); letter-spacing:2px; text-align:center">
-    PILOT RANK: <span style="color:var(--yellow)" id="splashRank">-</span> &nbsp;|&nbsp; HIGH SCORE: WAVE <span style="color:var(--yellow)" id="splashHigh">-</span>
+
+  <!-- Divider -->
+  <div style="width:min(280px,80%);height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);margin:16px 0;flex-shrink:0;"></div>
+
+  <!-- Pilot stats -->
+  <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(255,255,255,0.25);letter-spacing:2px;text-align:center;margin-bottom:14px;flex-shrink:0;">
+    PILOT RANK <span style="color:var(--yellow)" id="splashRank">1</span>
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    BEST WAVE <span style="color:var(--yellow)" id="splashHigh">--</span>
   </div>
-  <button onclick="startGame()" style="
-    font-family:'Orbitron',monospace; font-size:14px; font-weight:700;
-    padding:16px 50px; border:2px solid var(--cyan); background:transparent;
-    color:var(--cyan); cursor:pointer; letter-spacing:4px; margin-top:8px;
-    box-shadow:0 0 20px rgba(0,245,255,0.4); transition:all 0.2s;
-  " onmouseover="this.style.background='var(--cyan)';this.style.color='#000'"
-     onmouseout="this.style.background='transparent';this.style.color='var(--cyan)'">
-    DEPLOY
-  </button>
+
+  <!-- Tab buttons -->
+  <div style="display:flex;gap:0;border:1px solid rgba(0,245,255,0.25);flex-shrink:0;margin-bottom:16px;">
+    <button id="tabPlay" onclick="splashTab('play')" style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;padding:10px 28px;border:none;background:var(--cyan);color:#000;cursor:pointer;font-weight:700;">PLAY</button>
+    <button id="tabHow" onclick="splashTab('how')" style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;padding:10px 28px;border:none;background:transparent;color:var(--cyan);cursor:pointer;font-weight:700;">HOW TO PLAY</button>
+  </div>
+
+  <!-- PLAY panel -->
+  <div id="panelPlay" style="display:flex;flex-direction:column;align-items:center;gap:12px;flex-shrink:0;">
+    <button onclick="startGame()" style="font-family:'Orbitron',monospace;font-size:15px;font-weight:900;padding:16px 60px;border:2px solid var(--cyan);background:transparent;color:var(--cyan);cursor:pointer;letter-spacing:4px;box-shadow:0 0 24px rgba(0,245,255,0.35);transition:all 0.2s;"
+      onmouseover="this.style.background='var(--cyan)';this.style.color='#000'"
+      onmouseout="this.style.background='transparent';this.style.color='var(--cyan)'">
+      DEPLOY
+    </button>
+    <button onclick="resetMeta()" style="font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;padding:7px 20px;border:1px solid rgba(255,34,68,0.3);background:transparent;color:rgba(255,34,68,0.4);cursor:pointer;transition:all 0.2s;"
+      onmouseover="this.style.color='#ff2244';this.style.borderColor='#ff2244'"
+      onmouseout="this.style.color='rgba(255,34,68,0.4)';this.style.borderColor='rgba(255,34,68,0.3)'">
+      RESET PROGRESS
+    </button>
+  </div>
+
+  <!-- HOW TO PLAY panel (hidden by default) -->
+  <div id="panelHow" style="display:none;width:min(480px,92%);overflow-y:auto;padding:0 4px 20px;-webkit-overflow-scrolling:touch;">
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+
+      <!-- Card helper -->
+      <div style="grid-column:1/-1;background:rgba(0,245,255,0.04);border:1px solid rgba(0,245,255,0.15);border-radius:6px;padding:14px 16px;">
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan);margin-bottom:10px;">CORE LOOP</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:rgba(255,255,255,0.6);line-height:1.8;">
+          1. Buy a turret &mdash; get a random type<br>
+          2. Drag it into a <span style="color:var(--cyan)">RAIL</span> slot to activate<br>
+          3. Merge two of the same type &amp; level to upgrade<br>
+          4. Survive the wave, earn credits, repeat
+        </div>
+      </div>
+
+      <!-- Layout diagram -->
+      <div style="grid-column:1/-1;background:rgba(0,245,255,0.03);border:1px solid rgba(0,245,255,0.12);border-radius:6px;padding:14px 16px;">
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan);margin-bottom:12px;">LAYOUT</div>
+        <svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:320px;display:block;margin:0 auto;">
+          <!-- Enemy zone -->
+          <rect x="0" y="0" width="320" height="60" fill="rgba(255,34,68,0.06)" rx="3"/>
+          <text x="160" y="14" fill="rgba(255,34,68,0.5)" font-family="monospace" font-size="8" text-anchor="middle" letter-spacing="2">ENEMY ZONE</text>
+          <!-- enemy shapes -->
+          <rect x="30" y="22" width="14" height="14" fill="none" stroke="#00aaff" stroke-width="1.5" transform="rotate(45,37,29)"/>
+          <polygon points="80,22 90,36 70,36" fill="none" stroke="#ff2244" stroke-width="1.5"/>
+          <circle cx="130" cy="29" r="7" fill="none" stroke="#ffe600" stroke-width="1.5"/>
+          <rect x="165" y="22" width="14" height="14" fill="none" stroke="#cc00ff" stroke-width="1.5"/>
+          <polygon points="230,22 244,29 230,36 216,29" fill="none" stroke="#ff6600" stroke-width="1.5"/>
+          <!-- base line -->
+          <line x1="0" y1="62" x2="320" y2="62" stroke="rgba(0,245,255,0.3)" stroke-width="1" stroke-dasharray="5,5"/>
+          <text x="4" y="71" fill="rgba(0,245,255,0.35)" font-family="monospace" font-size="7" letter-spacing="1">BASE LINE</text>
+          <!-- Rails -->
+          <text x="160" y="80" fill="rgba(0,245,255,0.6)" font-family="monospace" font-size="7" text-anchor="middle" letter-spacing="3">RAILS (ACTIVE)</text>
+          <rect x="60" y="83" width="28" height="28" fill="rgba(0,245,255,0.08)" stroke="rgba(0,245,255,0.7)" stroke-width="1.5" rx="2"/>
+          <circle cx="74" cy="97" r="8" fill="none" stroke="#00f5ff" stroke-width="1.5"/>
+          <text x="74" y="101" fill="#00f5ff" font-family="monospace" font-size="7" text-anchor="middle">1</text>
+          <rect x="96" y="83" width="28" height="28" fill="rgba(0,245,255,0.04)" stroke="rgba(0,245,255,0.35)" stroke-width="1" stroke-dasharray="3,3" rx="2"/>
+          <rect x="132" y="83" width="28" height="28" fill="rgba(0,245,255,0.04)" stroke="rgba(0,245,255,0.35)" stroke-width="1" stroke-dasharray="3,3" rx="2"/>
+          <!-- Hangar -->
+          <text x="160" y="118" fill="rgba(0,245,255,0.4)" font-family="monospace" font-size="7" text-anchor="middle" letter-spacing="3">HANGAR (STORAGE)</text>
+          <rect x="195" y="83" width="20" height="20" fill="rgba(0,245,255,0.06)" stroke="rgba(0,245,255,0.4)" stroke-width="1" rx="2"/>
+          <polygon points="205,86 211,96 199,96" fill="none" stroke="#ff6600" stroke-width="1.2"/>
+          <text x="205" y="100" fill="#ff6600" font-family="monospace" font-size="5" text-anchor="middle">1</text>
+          <rect x="218" y="83" width="20" height="20" fill="rgba(0,245,255,0.06)" stroke="rgba(0,245,255,0.4)" stroke-width="1" rx="2"/>
+          <rect x="241" y="83" width="20" height="20" fill="rgba(0,245,255,0.04)" stroke="rgba(0,245,255,0.2)" stroke-width="1" stroke-dasharray="2,2" rx="2"/>
+          <rect x="264" y="83" width="20" height="20" fill="rgba(0,245,255,0.04)" stroke="rgba(0,245,255,0.2)" stroke-width="1" stroke-dasharray="2,2" rx="2"/>
+          <!-- drag arrow -->
+          <path d="M110 97 Q146 90 193 90" fill="none" stroke="rgba(255,255,0,0.4)" stroke-width="1" stroke-dasharray="3,2"/>
+          <polygon points="193,87 198,90 193,93" fill="rgba(255,255,0,0.5)"/>
+          <text x="146" y="86" fill="rgba(255,255,0,0.5)" font-family="monospace" font-size="6" text-anchor="middle">DRAG</text>
+        </svg>
+      </div>
+
+      <div style="background:rgba(0,245,255,0.04);border:1px solid rgba(0,245,255,0.15);border-radius:6px;padding:14px 16px;">
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan);margin-bottom:10px;">TURRET TYPES</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;line-height:2;">
+          <span style="color:var(--kinetic)">&#9645; KINETIC</span> &mdash; fast, piercing<br>
+          <span style="color:var(--energy)">&#9672; ENERGY</span> &mdash; slows, arcs<br>
+          <span style="color:var(--plasma)">&#9650; PLASMA</span> &mdash; burn, AOE
+        </div>
+      </div>
+
+      <div style="background:rgba(204,0,255,0.04);border:1px solid rgba(204,0,255,0.15);border-radius:6px;padding:14px 16px;">
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--magenta);margin-bottom:10px;">BEAM</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(255,255,255,0.6);line-height:1.8;">
+          Hold anywhere above the base line to fire a manual beam. It overheats &mdash; use it in bursts for chain kills.
+        </div>
+      </div>
+
+      <div style="background:rgba(255,230,0,0.04);border:1px solid rgba(255,230,0,0.15);border-radius:6px;padding:14px 16px;">
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--yellow);margin-bottom:10px;">CHAIN KILLS</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(255,255,255,0.6);line-height:1.8;">
+          Kill enemies fast to build a chain multiplier. Higher chains = more credits per kill.
+        </div>
+      </div>
+
+      <div style="background:rgba(255,34,68,0.04);border:1px solid rgba(255,34,68,0.15);border-radius:6px;padding:14px 16px;">
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--red);margin-bottom:10px;">ENEMIES</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;line-height:2;color:rgba(255,255,255,0.6);">
+          <span style="color:#00aaff">BLUE</span> weak to Kinetic<br>
+          <span style="color:#cc00ff">PURPLE</span> weak to Energy<br>
+          <span style="color:#ff2244">RED</span> weak to Plasma<br>
+          <span style="color:#ffe600">YELLOW</span> fast runners<br>
+          <span style="color:#ff6600">ORANGE</span> heavy brutes
+        </div>
+      </div>
+
+      <div style="background:rgba(0,255,136,0.04);border:1px solid rgba(0,255,136,0.15);border-radius:6px;padding:14px 16px;">
+        <div style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;color:var(--green);margin-bottom:10px;">PROGRESSION</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(255,255,255,0.6);line-height:1.8;">
+          Earn XP to rank up Pilot &amp; each turret type. Spend ranks in the <span style="color:var(--cyan)">SKILLS</span> tree. Progress carries across runs. Boss every 5 waves.
+        </div>
+      </div>
+
+    </div>
+
+    <button onclick="splashTab('play')" style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;margin-top:16px;padding:12px 40px;border:1px solid var(--cyan);background:transparent;color:var(--cyan);cursor:pointer;width:100%;">BACK</button>
+
+    <div style="text-align:center;margin-top:10px;padding-bottom:8px;">
+      <a href="https://singleframegames.com" target="_blank" style="font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(255,255,255,0.2);letter-spacing:2px;text-decoration:none;">SINGLEFRAMEGAMES.COM</a>
+    </div>
+  </div>
+
 </div>
 
 <canvas id="gameCanvas"></canvas>
@@ -1201,7 +1320,6 @@ function update() {
       prepTimer = 0;
       const pt = document.getElementById('prepTimer');
       if (!hasRailTurret) {
-        // Don't count down -- warn player
         pt.textContent = 'PLACE A TURRET IN THE RAILS TO DEPLOY';
         pt.style.color = 'var(--red)';
       } else {
@@ -1213,6 +1331,13 @@ function update() {
     }
     updateParticles();
     updateFloaters();
+    // HUD still updates during prep so credits are visible
+    document.getElementById('waveVal').textContent = wave;
+    document.getElementById('creditsVal').textContent = '$' + credits;
+    document.getElementById('shieldsVal').textContent = shields + '%';
+    document.getElementById('chainVal').textContent = 'x' + chainCount;
+    document.getElementById('rankVal').textContent = meta.pilotRank;
+    document.getElementById('shieldFill').style.width = Math.max(0, shields) + '%';
     return;
   }
 
@@ -1323,26 +1448,36 @@ function updateTurrets() {
       slot.timer = 0;
       gainTurretXP(slot.type, 1); // per fire
 
-      // Find target (closest enemy)
-      let target = null, minDist = 9999;
+      // Find target -- closest enemy within range
+      const range = getTurretRange(slot);
+      const turretX = pos.x + RAIL_W/2;
+      const turretY = pos.y + RAIL_W/2;
+      let target = null, minDist = range;
       enemies.forEach(en => {
-        const d = Math.hypot(en.x - (pos.x+32), en.y - pos.y);
+        const d = Math.hypot(en.x - turretX, en.y - turretY);
         if (d < minDist) { minDist = d; target = en; }
       });
-      if (!target && boss) target = boss;
+      if (!target && boss && Math.hypot(boss.x - turretX, boss.y - turretY) < range) target = boss;
 
       if (target) {
-        const angle = Math.atan2(target.y - pos.y, target.x - (pos.x+32));
+        const angle = Math.atan2(target.y - turretY, target.x - turretX);
         const spd = 12 * (1 + (meta.turretSkills[slot.type]?.[slot.type[0]+'7'] ? 0.5 : 0));
-        fireBullet(pos.x+32, pos.y+32, angle, spd, slot);
-
+        fireBullet(turretX, turretY, angle, spd, slot);
         if (meta.turretSkills[slot.type]?.[slot.type[0]+'5'] && slot.type === 'kinetic') {
-          // Twin barrel
-          fireBullet(pos.x+32, pos.y+32, angle + 0.15, spd, slot);
+          fireBullet(turretX, turretY, angle + 0.15, spd, slot);
         }
       }
     }
   });
+}
+
+// Range per type (pixels). Kinetic=straight lane, Energy=wide, Plasma=short AOE
+const TURRET_RANGE = { kinetic: 280, energy: 380, plasma: 200 };
+
+function getTurretRange(slot) {
+  const base = TURRET_RANGE[slot.type] || 300;
+  const rankBonus = (meta.turretRank[slot.type] - 1) * 20;
+  return base + rankBonus + slot.level * 15;
 }
 
 function fireBullet(x, y, angle, speed, slot) {
@@ -1644,19 +1779,48 @@ function draw() {
   ctx.globalAlpha = 1;
   ctx.textAlign = 'left';
 
+  // Draw range rings for hovered/selected rail turrets -- drawn before slots so rings are behind
+  const drawRangeRing = (slot, railIdx) => {
+    const p = getRailPos(railIdx);
+    const cx = p.x + RAIL_W/2, cy = p.y + RAIL_W/2;
+    const range = getTurretRange(slot);
+    const col = TYPES[slot.type].color;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, range, 0, Math.PI * 2);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.18;
+    ctx.setLineDash([4, 6]);
+    ctx.stroke();
+    ctx.globalAlpha = 0.05;
+    ctx.fillStyle = col;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
+    ctx.restore();
+  };
+
+  rails.forEach((slot, i) => {
+    if (!slot) return;
+    const p = getRailPos(i);
+    const isHovered = hoveredSlot && hoveredSlot.slot === slot;
+    const isSelected = selectedSlot && selectedSlot.slot === slot;
+    if (isHovered || isSelected) drawRangeRing(slot, i);
+  });
+
   if (dragging) drawTurret(mouseX, mouseY, dragging, false);
 
   // Hover tooltip -- type name above slot
   if (hoveredSlot && !dragging) {
     const { slot, cx, cy } = hoveredSlot;
     const col = TYPES[slot.type].color;
-    const label = slot.type.toUpperCase();
     ctx.save();
     ctx.font = 'bold 10px "Orbitron"';
     ctx.textAlign = 'center';
     ctx.shadowBlur = 8; ctx.shadowColor = col;
     ctx.fillStyle = col;
-    ctx.fillText(`${label} LV${slot.level}`, cx, cy - SLOT_W/2 - 6);
+    ctx.fillText(slot.type.toUpperCase() + ' LV' + slot.level, cx, cy - SLOT_W/2 - 6);
     ctx.restore();
   }
 
@@ -1690,67 +1854,81 @@ function drawSlotBox(x, y, w, h, color, highlight) {
 function drawStatsPanel(slot) {
   const col = TYPES[slot.type].color;
   const rank = meta.turretRank[slot.type] || 1;
-  const px = 16, py = getPanelTop() + 12;
-  const pw = 150, ph = 210;
+  const px = 12, py = getPanelTop() - 230;
+  const pw = 160, ph = 225;
 
-  // Panel background
+  // Computed stats
+  const fireInterval = Math.max(8, 40 - slot.level * 5 - rank * 2);
+  const baseDmg      = slot.level * (1 + (rank - 1) * 0.15);
+  const fireRate     = 60 / fireInterval;
+  const dps          = (baseDmg * fireRate).toFixed(1);
+  const hasBurn      = slot.type === 'plasma' && meta.turretSkills.plasma['p2'];
+  const burnDmg      = hasBurn ? (0.3 * (1 + (meta.turretSkills.plasma['p4'] ? 0.5 : 0))).toFixed(2) : '--';
+  const hasAoe       = slot.type === 'plasma' && meta.turretSkills.plasma['p1'];
+  const aoeRad       = hasAoe ? Math.round(20 * (1 + 0.2)) + 'px' : '--';
+  const hasArc       = slot.type === 'energy' && meta.turretSkills.energy['e5'];
+  const hasSlow      = slot.type === 'energy' && meta.turretSkills.energy['e2'];
+  const weakLabel    = { kinetic:'BLUE', energy:'PURPLE', plasma:'RED' }[slot.type];
+  const armorLabel   = { kinetic:'PURPLE', energy:'RED', plasma:'BLUE' }[slot.type];
+
   ctx.save();
-  ctx.fillStyle = 'rgba(0,8,20,0.92)';
+
+  // Panel bg
+  ctx.fillStyle = 'rgba(0,6,18,0.96)';
   ctx.strokeStyle = col;
   ctx.lineWidth = 1.5;
-  ctx.shadowBlur = 10; ctx.shadowColor = col;
+  ctx.shadowBlur = 12; ctx.shadowColor = col;
   ctx.beginPath();
   ctx.roundRect(px, py, pw, ph, 6);
   ctx.fill(); ctx.stroke();
   ctx.shadowBlur = 0;
 
-  // Type icon + name
-  const cx = px + pw/2;
-  ctx.textAlign = 'center';
-  drawTurret(cx, py + 28, slot, false);
+  // Header
+  const cx = px + pw / 2;
+  drawTurret(cx, py + 24, slot, false);
 
+  ctx.textAlign = 'center';
   ctx.font = 'bold 11px "Orbitron"';
   ctx.fillStyle = col;
-  ctx.fillText(slot.type.toUpperCase(), cx, py + 52);
+  ctx.fillText(slot.type.toUpperCase(), cx, py + 46);
 
   ctx.font = '9px "Share Tech Mono"';
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fillText(`LEVEL ${slot.level}  *  RANK ${rank}`, cx, py + 66);
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText('LV' + slot.level + '  RNK' + rank, cx, py + 58);
 
   // Divider
-  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(px+10, py+74); ctx.lineTo(px+pw-10, py+74); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px+8, py+64); ctx.lineTo(px+pw-8, py+64); ctx.stroke();
 
-  // Stats
-  const fireInterval = Math.max(8, 40 - slot.level * 5 - rank * 2);
-  const dps = ((slot.level * (1 + (rank-1)*0.15)) * (60 / fireInterval)).toFixed(1);
-  const weakLabel  = { kinetic:'BLUE', energy:'PURPLE', plasma:'RED' }[slot.type];
-  const armorLabel = { kinetic:'PURPLE', energy:'RED', plasma:'BLUE' }[slot.type] ;
-
-  const stats = [
-    { label: 'POWER',   val: `${slot.level * (1 + (rank-1)*0.15).toFixed(1)}` },
-    { label: 'FIRE/S',  val: `${(60/fireInterval).toFixed(1)}` },
-    { label: 'DPS',     val: dps },
-    { label: 'WEAK VS', val: weakLabel,  hl: true },
-    { label: 'ARMOR VS',val: armorLabel, dim: true },
-    { label: 'XP',      val: `${meta.turretXP[slot.type]}/${getNextTurretXP(slot.type)}` },
+  // Stats rows
+  const rows = [
+    { label:'DMG',     val: baseDmg.toFixed(1),           color: col },
+    { label:'FIRE/S',  val: fireRate.toFixed(1),           color: col },
+    { label:'DPS',     val: dps,                           color: '#ffe600' },
+    { label:'RANGE',   val: Math.round(getTurretRange(slot)) + 'px', color: col },
+    { label:'DOT',     val: burnDmg,                       color: slot.type==='plasma' ? '#ff6600' : 'rgba(255,255,255,0.2)' },
+    { label:'AOE',     val: aoeRad,                        color: slot.type==='plasma' ? '#ff6600' : 'rgba(255,255,255,0.2)' },
+    { label:'ARC',     val: hasArc ? '2 TARGETS' : '--',  color: slot.type==='energy' ? '#cc00ff' : 'rgba(255,255,255,0.2)' },
+    { label:'SLOW',    val: hasSlow ? '-20%' : '--',       color: slot.type==='energy' ? '#00f5ff' : 'rgba(255,255,255,0.2)' },
+    { label:'WEAK VS', val: weakLabel,                     color: '#00ff88' },
+    { label:'ARMOR',   val: armorLabel,                    color: '#ff4466' },
+    { label:'XP',      val: meta.turretXP[slot.type] + '/' + getNextTurretXP(slot.type), color: 'rgba(255,255,255,0.4)' },
   ];
 
   ctx.textAlign = 'left';
-  stats.forEach((s, i) => {
-    const sy = py + 86 + i * 20;
-    ctx.font = '9px "Share Tech Mono"';
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.fillText(s.label, px + 12, sy);
+  rows.forEach((r, i) => {
+    const sy = py + 76 + i * 16;
+    ctx.font = '8px "Share Tech Mono"';
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillText(r.label, px + 10, sy);
     ctx.textAlign = 'right';
-    ctx.fillStyle = s.hl ? '#00ff88' : s.dim ? '#ff4466' : col;
-    ctx.font = 'bold 10px "Share Tech Mono"';
-    ctx.fillText(s.val, px + pw - 12, sy);
+    ctx.fillStyle = r.color;
+    ctx.font = 'bold 9px "Share Tech Mono"';
+    ctx.fillText(r.val, px + pw - 10, sy);
     ctx.textAlign = 'left';
   });
 
-  ctx.textAlign = 'left';
   ctx.restore();
 }
 
@@ -2073,8 +2251,42 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-// -- BOOT --
-// Populate splash stats
+// =============================================
+// MENU FUNCTIONS
+// =============================================
+function splashTab(tab) {
+  document.getElementById('panelPlay').style.display = tab === 'play' ? 'flex' : 'none';
+  document.getElementById('panelHow').style.display  = tab === 'how'  ? 'block' : 'none';
+  document.getElementById('tabPlay').style.background = tab === 'play' ? 'var(--cyan)' : 'transparent';
+  document.getElementById('tabPlay').style.color      = tab === 'play' ? '#000' : 'var(--cyan)';
+  document.getElementById('tabHow').style.background  = tab === 'how'  ? 'var(--cyan)' : 'transparent';
+  document.getElementById('tabHow').style.color       = tab === 'how'  ? '#000' : 'var(--cyan)';
+}
+
+function quitToMenu() {
+  gameStarted = false;
+  skillPaused = false;
+  // Reset game state cleanly
+  enemies = []; bullets = []; particles = []; floaters = [];
+  boss = null; dragging = null; beamActive = false; selectedSlot = null;
+  phase = 'prep';
+  document.getElementById('bossHpBar').style.display = 'none';
+  document.getElementById('overlay').classList.remove('active');
+  document.getElementById('skillOverlay').classList.remove('active');
+  // Update splash stats and show
+  document.getElementById('splashRank').textContent = meta.pilotRank;
+  document.getElementById('splashHigh').textContent = meta.highScore || '--';
+  splashTab('play');
+  document.getElementById('splash').style.display = 'flex';
+}
+
+function resetMeta() {
+  if (!confirm('Reset ALL progress? This cannot be undone.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  meta = loadMeta();
+  document.getElementById('splashRank').textContent = meta.pilotRank;
+  document.getElementById('splashHigh').textContent = '--';
+}
 document.getElementById('splashRank').textContent = meta.pilotRank;
 document.getElementById('splashHigh').textContent = meta.highScore || '--';
 requestAnimationFrame(gameLoop);
