@@ -520,25 +520,23 @@
 <!-- Chain popup -->
 <div id="chainPopup"></div>
 
-<!-- Heat -->
-<div id="heatBar">
+<!-- Heat (hidden) -->
+<div id="heatBar" style="display:none">
   <div id="heatLabel">BEAM HEAT</div>
   <div id="heatTrack"><div id="heatFill" style="width:0%"></div></div>
 </div>
 
 <!-- Beam mode hint -->
-<div id="beamMode">HOLD TO FIRE BEAM</div>
+<div id="beamMode" style="display:none">HOLD TO FIRE BEAM</div>
 
-<div id="railsLabel">◈ ACTIVE RAILS ◈</div>
-<div id="hangarLabel">◈ HANGAR ◈</div>
+<div id="railsLabel" style="display:none">◈ ACTIVE RAILS ◈</div>
+<div id="hangarLabel" style="display:none">◈ HANGAR ◈</div>
 
 <div id="bottomPanel"></div>
 
 <!-- Controls -->
 <div id="controls">
-  <button class="btn btn-kinetic" onclick="buyTurret('kinetic')">⬡ KINETIC $15</button>
-  <button class="btn btn-energy"  onclick="buyTurret('energy')">◈ ENERGY $20</button>
-  <button class="btn btn-plasma"  onclick="buyTurret('plasma')">▲ PLASMA $25</button>
+  <button class="btn btn-kinetic" onclick="buyTurret()">⬡ BUY TURRET $15</button>
   <button class="btn btn-sell"    onclick="toggleSellMode()">✕ SELL</button>
   <button class="btn" style="color:var(--cyan)" onclick="openSkills()">⊕ SKILLS</button>
 </div>
@@ -1002,12 +1000,24 @@ function getTurretBuyCost(type) {
   return Math.floor(base * disc);
 }
 
-function buyTurret(type) {
-  const cost = getTurretBuyCost(type);
+function buyTurret() {
+  const cost = 15;
   if (credits < cost) return;
   const idx = hangar.findIndex(s => s === null);
   if (idx === -1) return;
   credits -= cost;
+  // Weighted random — pilot skills can bias odds
+  const weights = {
+    kinetic: 1 + (meta.pilotSkills['pw_k'] || 0) * 0.5,
+    energy:  1 + (meta.pilotSkills['pw_e'] || 0) * 0.5,
+    plasma:  1 + (meta.pilotSkills['pw_p'] || 0) * 0.5,
+  };
+  const total = weights.kinetic + weights.energy + weights.plasma;
+  let r = Math.random() * total;
+  let type = 'kinetic';
+  if ((r -= weights.kinetic) < 0) type = 'kinetic';
+  else if ((r -= weights.energy) < 0) type = 'energy';
+  else type = 'plasma';
   hangar[idx] = { type, level: 1, timer: 0, xp: 0 };
 }
 
@@ -1556,14 +1566,7 @@ function draw() {
 
   if (dragging) drawTurret(mouseX, mouseY, dragging, false);
 
-  const bm = document.getElementById('beamMode');
-  if (phase === 'combat' && !beamActive && !dragging) {
-    bm.style.opacity = '0.5';
-    bm.style.color = overheated ? 'var(--red)' : 'var(--magenta)';
-    bm.textContent = overheated ? 'BEAM OVERHEATED — COOLING' : 'HOLD TO FIRE BEAM';
-  } else {
-    bm.style.opacity = '0';
-  }
+  // beam mode indicator hidden per design
 }
 
 function drawSlotBox(x, y, w, h, color, highlight) {
