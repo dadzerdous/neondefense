@@ -876,10 +876,9 @@ function spawnBoss() {
 // ═══════════════════════════════════════════
 canvas.addEventListener('pointerdown', e => {
   const x = e.clientX, y = e.clientY;
-  // Ignore UI area
-  if (y > H - 250) return;
+  const panelTop = H - 250;
 
-  // Check sell mode click
+  // Check sell mode click anywhere
   if (sellMode) {
     hangar.forEach((slot, i) => {
       if (!slot) return;
@@ -900,7 +899,7 @@ canvas.addEventListener('pointerdown', e => {
     return;
   }
 
-  // Drag from hangar
+  // Try drag from hangar
   let picked = false;
   hangar.forEach((slot, i) => {
     if (picked || !slot) return;
@@ -911,7 +910,7 @@ canvas.addEventListener('pointerdown', e => {
     }
   });
 
-  // Drag from rail
+  // Try drag from rail
   if (!picked) {
     rails.forEach((slot, i) => {
       if (picked || !slot) return;
@@ -923,16 +922,20 @@ canvas.addEventListener('pointerdown', e => {
     });
   }
 
-  if (!picked) {
+  // Only start beam if clicking in the play area (above panel)
+  if (!picked && y < panelTop) {
     beamActive = true;
-    beamX = x; beamY = y;
+    beamX = x; beamY = Math.min(y, panelTop - 2);
   }
   updateMouse(e);
 });
 
 canvas.addEventListener('pointermove', e => {
   updateMouse(e);
-  if (beamActive) { beamX = e.clientX; beamY = e.clientY; }
+  if (beamActive) {
+    beamX = e.clientX;
+    beamY = Math.min(e.clientY, H - 250 - 2);
+  }
 });
 
 canvas.addEventListener('pointerup', e => {
@@ -1352,6 +1355,7 @@ function updateEnemies() {
     en.y += en.speed * slowMult;
     if (en.id === 'yellow') en.driftX = Math.sin(frameCount * 0.05 + en.phase) * 0.5;
     en.x += (en.driftX || 0);
+    en.angle += en.rotSpeed * (en.slowTimer > 0 ? 0.4 : 1);
 
     if (en.y > H - 250) {
       shields -= 8;
@@ -1445,6 +1449,8 @@ function spawnEnemy(def) {
     hp: (def.hpMult * (3 + wave * 1.2)),
     maxHp: (def.hpMult * (3 + wave * 1.2)),
     speed,
+    angle: Math.random() * Math.PI * 2,
+    rotSpeed: (Math.random() * 0.03 + 0.01) * (Math.random() < 0.5 ? 1 : -1),
     burnTimer: 0, burnDmg: 0,
     slowTimer: 0, slowAmt: 0,
     phase: Math.random() * Math.PI * 2,
@@ -1574,46 +1580,55 @@ function drawSlotBox(x, y, w, h, color, highlight) {
 function drawEnemy(en) {
   const flash = en.burnTimer > 0 && frameCount % 6 < 3;
   const col = flash ? '#ff8800' : en.color;
+  const x = en.x, y = en.y;
+
+  // Draw rotated shape
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(en.angle || 0);
   ctx.shadowBlur = 8; ctx.shadowColor = col;
   ctx.strokeStyle = col;
   ctx.lineWidth = 2;
 
-  const x = en.x, y = en.y;
   ctx.beginPath();
   if (en.shape === 'rect') {
-    ctx.strokeRect(x-10, y-10, 20, 20);
+    ctx.strokeRect(-10, -10, 20, 20);
   } else if (en.shape === 'diamond') {
-    ctx.moveTo(x, y-14); ctx.lineTo(x+14, y); ctx.lineTo(x, y+14); ctx.lineTo(x-14, y); ctx.closePath();
+    ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.closePath();
     ctx.stroke();
   } else if (en.shape === 'triangle') {
-    ctx.moveTo(x, y-14); ctx.lineTo(x+14, y+10); ctx.lineTo(x-14, y+10); ctx.closePath();
+    ctx.moveTo(0, -14); ctx.lineTo(14, 10); ctx.lineTo(-14, 10); ctx.closePath();
     ctx.stroke();
   } else if (en.shape === 'circle') {
-    ctx.arc(x, y, 10, 0, Math.PI*2); ctx.stroke();
+    // circles don't need rotation but add inner spin line
+    ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(10, 0);
+    ctx.stroke();
   } else if (en.shape === 'star') {
     for (let s = 0; s < 5; s++) {
       const a = (s/5)*Math.PI*2 - Math.PI/2;
       const a2 = a + Math.PI/5;
-      ctx.moveTo(x + Math.cos(a)*14, y + Math.sin(a)*14);
-      ctx.lineTo(x + Math.cos(a2)*6, y + Math.sin(a2)*6);
+      ctx.moveTo(Math.cos(a)*14, Math.sin(a)*14);
+      ctx.lineTo(Math.cos(a2)*6, Math.sin(a2)*6);
     }
     ctx.stroke();
   }
+  ctx.restore();
 
-  // Health bar
-  const pct = en.hp / en.maxHp;
-  ctx.fillStyle = 'rgba(255,255,255,0.1)';
-  ctx.fillRect(x-12, y-20, 24, 3);
-  ctx.fillStyle = pct > 0.5 ? '#00ff88' : pct > 0.25 ? '#ffe600' : '#ff2244';
-  ctx.fillRect(x-12, y-20, 24*pct, 3);
-
-  // Slow indicator
-  if (en.slowTimer > 0) {
-    ctx.fillStyle = 'rgba(0,245,255,0.3)';
-    ctx.fillRect(x-10, y-10, 20, 20);
-  }
-
+  // Health bar and slow indicator — drawn unrotated above enemy
   ctx.shadowBlur = 0;
+  const pct = Math.max(0, en.hp / en.maxHp);
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(x-12, y-22, 24, 4);
+  ctx.fillStyle = pct > 0.5 ? '#00ff88' : pct > 0.25 ? '#ffe600' : '#ff2244';
+  ctx.fillRect(x-12, y-22, 24*pct, 4);
+
+  if (en.slowTimer > 0) {
+    ctx.strokeStyle = 'rgba(0,245,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x, y, 13, 0, Math.PI*2); ctx.stroke();
+  }
 }
 
 function drawBoss() {
