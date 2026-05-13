@@ -97,7 +97,7 @@
   /* Heat bar */
   #heatBar {
     position: absolute;
-    bottom: 280px;
+    bottom: 255px;
     left: 50%;
     transform: translateX(-50%);
     width: 200px;
@@ -129,7 +129,7 @@
   #bottomPanel {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 270px;
+    height: 250px;
     background: linear-gradient(0deg, rgba(0,5,15,0.97) 0%, rgba(0,10,25,0.85) 80%, transparent 100%);
     z-index: 10;
     pointer-events: none;
@@ -137,7 +137,7 @@
 
   #railsLabel {
     position: absolute;
-    bottom: 200px;
+    bottom: 198px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 9px;
@@ -149,7 +149,7 @@
 
   #hangarLabel {
     position: absolute;
-    bottom: 125px;
+    bottom: 118px;
     left: 50%;
     transform: translateX(-50%);
     font-size: 9px;
@@ -568,6 +568,35 @@
   <button class="overlay-btn" id="overlayBtn" onclick="restartGame()">DEPLOY AGAIN</button>
 </div>
 
+<!-- Splash Screen -->
+<div id="splash" style="
+  position:absolute; inset:0; background:#030610; z-index:300;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+">
+  <div style="font-family:'Orbitron',monospace; font-size:13px; letter-spacing:6px; color:var(--cyan); opacity:0.5">ANTHROPIC DEFENSE SYSTEMS</div>
+  <div style="font-family:'Orbitron',monospace; font-size:52px; font-weight:900; color:var(--cyan); text-shadow:0 0 40px var(--cyan), 0 0 80px rgba(0,245,255,0.4); letter-spacing:4px; text-align:center; line-height:1.1">NEON<br>STRIKE</div>
+  <div style="font-family:'Orbitron',monospace; font-size:16px; letter-spacing:8px; color:var(--magenta); text-shadow:0 0 15px var(--magenta)">MERGE</div>
+  <div style="width:200px; height:1px; background:linear-gradient(90deg, transparent, var(--cyan), transparent); margin:8px 0;"></div>
+  <div style="font-family:'Share Tech Mono',monospace; font-size:11px; color:rgba(0,245,255,0.5); letter-spacing:2px; text-align:center; line-height:2">
+    DRAG TURRETS TO RAILS TO ACTIVATE<br>
+    MERGE SAME TYPE + LEVEL TO UPGRADE<br>
+    HOLD CANVAS TO FIRE BEAM<br>
+    ENEMY COLOR = DAMAGE WEAKNESS
+  </div>
+  <div style="margin-top:10px; font-family:'Share Tech Mono',monospace; font-size:10px; color:rgba(255,255,255,0.3); letter-spacing:2px; text-align:center">
+    PILOT RANK: <span style="color:var(--yellow)" id="splashRank">-</span> &nbsp;|&nbsp; HIGH SCORE: WAVE <span style="color:var(--yellow)" id="splashHigh">-</span>
+  </div>
+  <button onclick="startGame()" style="
+    font-family:'Orbitron',monospace; font-size:14px; font-weight:700;
+    padding:16px 50px; border:2px solid var(--cyan); background:transparent;
+    color:var(--cyan); cursor:pointer; letter-spacing:4px; margin-top:8px;
+    box-shadow:0 0 20px rgba(0,245,255,0.4); transition:all 0.2s;
+  " onmouseover="this.style.background='var(--cyan)';this.style.color='#000'"
+     onmouseout="this.style.background='transparent';this.style.color='var(--cyan)'">
+    DEPLOY
+  </button>
+</div>
+
 <canvas id="gameCanvas"></canvas>
 
 <script>
@@ -674,7 +703,7 @@ let bossMaxHp = 0;
 // Wave system
 let phase; // 'prep' | 'combat'
 let prepCountdown;
-let enemiesThisWave, enemiesSpawned, enemiesKilled;
+let enemiesThisWave, enemiesSpawned, enemiesKilled, waveComplete;
 let waveEnemyDef = [];
 
 // Dragging
@@ -709,19 +738,28 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-function getSlotPos(i) {
-  const hangarSlots = getHangarSlots();
-  const cols = Math.min(hangarSlots, 6);
-  const totalW = cols * 55;
-  const row = Math.floor(i / cols);
-  const col = i % cols;
-  return { x: (W/2 - totalW/2) + col*55, y: H - 155 + row*55 };
-}
+// Layout — built bottom-up from fixed zones:
+// [buttons 50px] [hangar labels+rows 120px] [rail label+row 80px] = 250px panel
+const SLOT_W = 52, SLOT_GAP = 6;
+const RAIL_W = 60, RAIL_GAP = 10;
+const BTN_ZONE  = 50;   // height of button row from very bottom
+const HNG_ZONE  = 120;  // two hangar rows
+const RAIL_ZONE = 80;   // one rail row + label
 
 function getRailPos(i) {
   const railSlots = getRailSlots();
-  const totalW = railSlots * 70;
-  return { x: (W/2 - totalW/2) + i*70, y: H - 240 };
+  const totalW = railSlots * (RAIL_W + RAIL_GAP) - RAIL_GAP;
+  const y = H - BTN_ZONE - HNG_ZONE - RAIL_ZONE + 16;
+  return { x: (W/2 - totalW/2) + i*(RAIL_W + RAIL_GAP), y };
+}
+
+function getSlotPos(i) {
+  const cols = 5;
+  const totalW = cols * (SLOT_W + SLOT_GAP) - SLOT_GAP;
+  const row = Math.floor(i / cols);
+  const col = i % cols;
+  const baseY = H - BTN_ZONE - HNG_ZONE + 18;
+  return { x: (W/2 - totalW/2) + col*(SLOT_W + SLOT_GAP), y: baseY + row*(SLOT_W + SLOT_GAP) };
 }
 
 function getRailSlots() { return meta.pilotSkills['pr8'] ? 4 : 3; }
@@ -796,10 +834,12 @@ function buildWaveEnemyDef() {
   enemiesThisWave = count;
   enemiesSpawned = 0;
   enemiesKilled = 0;
+  waveComplete = false;
 }
 
 function startCombatPhase() {
   phase = 'combat';
+  combatFrame = 0;
   document.getElementById('prepTimer').style.opacity = '0';
   buildWaveEnemyDef();
 
@@ -808,7 +848,7 @@ function startCombatPhase() {
 }
 
 let frameCount = 0;
-let spawnFrame = 0;
+let combatFrame = 0; // resets each combat phase
 
 function spawnBoss() {
   const bossHp = 80 + wave * 30;
@@ -837,14 +877,14 @@ function spawnBoss() {
 canvas.addEventListener('pointerdown', e => {
   const x = e.clientX, y = e.clientY;
   // Ignore UI area
-  if (y > H - 270) return;
+  if (y > H - 250) return;
 
   // Check sell mode click
   if (sellMode) {
     hangar.forEach((slot, i) => {
       if (!slot) return;
       const p = getSlotPos(i);
-      if (x > p.x && x < p.x+50 && y > p.y && y < p.y+50) {
+      if (x > p.x && x < p.x+SLOT_W && y > p.y && y < p.y+SLOT_W) {
         credits += Math.floor(getTurretBuyCost(slot.type) * 0.4 * slot.level);
         hangar[i] = null;
       }
@@ -852,7 +892,7 @@ canvas.addEventListener('pointerdown', e => {
     rails.forEach((slot, i) => {
       if (!slot) return;
       const p = getRailPos(i);
-      if (x > p.x && x < p.x+65 && y > p.y && y < p.y+65) {
+      if (x > p.x && x < p.x+RAIL_W && y > p.y && y < p.y+RAIL_W) {
         credits += Math.floor(getTurretBuyCost(slot.type) * 0.4 * slot.level);
         rails[i] = null;
       }
@@ -865,7 +905,7 @@ canvas.addEventListener('pointerdown', e => {
   hangar.forEach((slot, i) => {
     if (picked || !slot) return;
     const p = getSlotPos(i);
-    if (x > p.x && x < p.x+50 && y > p.y && y < p.y+50) {
+    if (x > p.x && x < p.x+SLOT_W && y > p.y && y < p.y+SLOT_W) {
       dragging = slot; dragFromIdx = i; dragFromHangar = true;
       hangar[i] = null; picked = true;
     }
@@ -876,7 +916,7 @@ canvas.addEventListener('pointerdown', e => {
     rails.forEach((slot, i) => {
       if (picked || !slot) return;
       const p = getRailPos(i);
-      if (x > p.x && x < p.x+65 && y > p.y && y < p.y+65) {
+      if (x > p.x && x < p.x+RAIL_W && y > p.y && y < p.y+RAIL_W) {
         dragging = slot; dragFromIdx = i; dragFromHangar = false;
         rails[i] = null; picked = true;
       }
@@ -903,7 +943,7 @@ canvas.addEventListener('pointerup', e => {
     hangar.forEach((slot, i) => {
       if (dropped) return;
       const p = getSlotPos(i);
-      if (mouseX > p.x && mouseX < p.x+50 && mouseY > p.y && mouseY < p.y+50) {
+      if (mouseX > p.x && mouseX < p.x+SLOT_W && mouseY > p.y && mouseY < p.y+SLOT_W) {
         if (!slot) {
           hangar[i] = dragging; dropped = true;
         } else if (slot.level === dragging.level && slot.type === dragging.type && slot.level < getMaxLevel()) {
@@ -919,7 +959,7 @@ canvas.addEventListener('pointerup', e => {
       rails.forEach((slot, i) => {
         if (dropped) return;
         const p = getRailPos(i);
-        if (mouseX > p.x && mouseX < p.x+65 && mouseY > p.y && mouseY < p.y+65) {
+        if (mouseX > p.x && mouseX < p.x+RAIL_W && mouseY > p.y && mouseY < p.y+RAIL_W) {
           if (!slot) { rails[i] = dragging; dropped = true; }
           else if (slot.level === dragging.level && slot.type === dragging.type && slot.level < getMaxLevel()) {
             slot.level++;
@@ -1100,10 +1140,11 @@ function update() {
   }
 
   // ── COMBAT PHASE ──
+  combatFrame++;
 
-  // Spawn enemies
+  // Spawn enemies using combatFrame so delays are relative to wave start
   waveEnemyDef.forEach(def => {
-    if (!def.spawned && frameCount >= spawnFrame + def.delay) {
+    if (!def.spawned && combatFrame >= def.delay) {
       spawnEnemy(def);
       def.spawned = true;
       enemiesSpawned++;
@@ -1143,15 +1184,15 @@ function update() {
     chainCount = 1;
   }
 
-  // Wave complete check
-  if (phase === 'combat' && !boss && enemiesSpawned >= enemiesThisWave && enemies.length === 0) {
+  // Wave complete check — only trigger once
+  if (phase === 'combat' && !boss && !waveComplete && enemiesSpawned >= enemiesThisWave && enemies.length === 0) {
+    waveComplete = true;
     const waveBonus = 10 + wave * 5;
     credits += waveBonus;
     spawnFloater(W/2, H/2, `WAVE CLEAR +$${waveBonus}`, '#ffe600');
     gainPilotXP(10 + wave * 2);
     wave++;
     setTimeout(startPrepPhase, 1500);
-    spawnFrame = frameCount;
   }
 
   // Update HUD
@@ -1248,39 +1289,41 @@ function updateBullets() {
       bullets.splice(i, 1); continue;
     }
 
-    let hit = false;
+    let bulletDead = false;
     for (let j = enemies.length-1; j >= 0; j--) {
       const en = enemies[j];
       if (Math.hypot(en.x - b.x, en.y - b.y) < 18) {
         const dmg = calcDamage(b, en);
         en.hp -= dmg;
 
-        // Slow on hit (energy)
         if (b.type === 'energy' && meta.turretSkills.energy['e2']) {
           en.slowTimer = 90; en.slowAmt = 0.2;
         }
-        // Burn (plasma)
         if (b.type === 'plasma' && meta.turretSkills.plasma['p2']) {
           en.burnTimer = 120;
           en.burnDmg = 0.3 * (1 + (meta.turretSkills.plasma['p4'] ? 0.5 : 0));
         }
-        // Instakill (plasma p9)
         if (b.type === 'plasma' && meta.turretSkills.plasma['p9'] && Math.random() < 0.05) {
           en.hp = -9999;
         }
 
         spawnParticles(en.x, en.y, TYPES[b.type].color, 2, 4);
 
-        if (b.pierce > 0) { b.pierce--; }
-        else { bullets.splice(i, 1); hit = true; }
+        if (en.hp <= 0) {
+          killEnemy(j);
+        }
 
-        if (en.hp <= 0) killEnemy(j);
+        if (b.pierce > 0) {
+          b.pierce--;
+        } else {
+          bullets.splice(i, 1);
+          bulletDead = true;
+        }
         break;
       }
     }
 
-    // Boss hit
-    if (!hit && boss && Math.hypot(boss.x - b.x, boss.y - b.y) < boss.size) {
+    if (!bulletDead && boss && Math.hypot(boss.x - b.x, boss.y - b.y) < boss.size) {
       const dmg = calcDamage(b, boss);
       boss.hp -= dmg;
       spawnParticles(boss.x, boss.y, TYPES[b.type].color, 3, 5);
@@ -1298,22 +1341,22 @@ function updateEnemies() {
       en.burnTimer--;
       en.hp -= en.burnDmg;
       if (meta.turretSkills.plasma['p5']) en.slowTimer = 30;
-      if (en.hp <= 0) { killEnemy(i); continue; }
     }
+
+    // Check death after burn
+    if (en.hp <= 0) { killEnemy(i); continue; }
 
     const slowMult = en.slowTimer > 0 ? (1 - (en.slowAmt || 0.2)) : 1;
     if (en.slowTimer > 0) en.slowTimer--;
 
     en.y += en.speed * slowMult;
+    if (en.id === 'yellow') en.driftX = Math.sin(frameCount * 0.05 + en.phase) * 0.5;
     en.x += (en.driftX || 0);
 
-    // Boss summons and red enemies drift
-    if (en.id === 'yellow') en.driftX = Math.sin(frameCount * 0.05 + en.phase) * 0.5;
-
-    if (en.y > H - 275) {
+    if (en.y > H - 250) {
       shields -= 8;
       enemies.splice(i, 1);
-      spawnParticles(en.x, H-275, '#ff2244', 8, 5);
+      spawnParticles(en.x, H-250, '#ff2244', 8, 5);
       if (shields <= 0) gameOver();
     }
   }
@@ -1357,11 +1400,11 @@ function updateBoss() {
   document.getElementById('bossHpFill').style.width = pct + '%';
 
   // Boss reaches base
-  if (boss.y > H - 275) {
+  if (boss.y > H - 250) {
     shields -= 30;
     boss = null;
     document.getElementById('bossHpBar').style.display = 'none';
-    spawnParticles(W/2, H-275, '#ff2244', 30, 8);
+    spawnParticles(W/2, H-250, '#ff2244', 30, 8);
     if (shields <= 0) gameOver();
     return;
   }
@@ -1440,14 +1483,14 @@ function draw() {
   for (let x = 0; x < W; x += 40) {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
   }
-  for (let y = 0; y < H - 270; y += 40) {
+  for (let y = 0; y < H - 250; y += 40) {
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
   }
 
   ctx.strokeStyle = 'rgba(0,245,255,0.2)';
   ctx.lineWidth = 1;
   ctx.setLineDash([8, 8]);
-  ctx.beginPath(); ctx.moveTo(0, H-270); ctx.lineTo(W, H-270); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, H-250); ctx.lineTo(W, H-250); ctx.stroke();
   ctx.setLineDash([]);
 
   enemies.forEach(en => drawEnemy(en));
@@ -1466,9 +1509,9 @@ function draw() {
     const bw = 3 + (meta.turretSkills.energy['e1'] ? 2 : 0);
     ctx.shadowBlur = 20; ctx.shadowColor = beamColor;
     ctx.strokeStyle = beamColor; ctx.lineWidth = bw;
-    ctx.beginPath(); ctx.moveTo(W/2, H-270); ctx.lineTo(beamX, beamY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W/2, H-250); ctx.lineTo(beamX, beamY); ctx.stroke();
     ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(W/2, H-270); ctx.lineTo(beamX, beamY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W/2, H-250); ctx.lineTo(beamX, beamY); ctx.stroke();
     ctx.shadowBlur = 0;
   }
 
@@ -1476,16 +1519,16 @@ function draw() {
   for (let i = 0; i < railSlots; i++) {
     const p = getRailPos(i);
     const slot = rails[i];
-    drawSlotBox(p.x, p.y, 65, 65, slot ? TYPES[slot.type].color : 'rgba(0,245,255,0.3)', sellMode && slot);
-    if (slot) drawTurret(p.x+32, p.y+32, slot, true);
+    drawSlotBox(p.x, p.y, RAIL_W, RAIL_W, slot ? TYPES[slot.type].color : 'rgba(0,245,255,0.3)', sellMode && slot);
+    if (slot) drawTurret(p.x + RAIL_W/2, p.y + RAIL_W/2, slot, true);
   }
 
   const hangarSlots = getHangarSlots();
   for (let i = 0; i < hangarSlots; i++) {
     const p = getSlotPos(i);
     const slot = hangar[i];
-    drawSlotBox(p.x, p.y, 50, 50, slot ? TYPES[slot.type].color : 'rgba(0,245,255,0.1)', sellMode && slot);
-    if (slot) drawTurret(p.x+25, p.y+25, slot, false);
+    drawSlotBox(p.x, p.y, SLOT_W, SLOT_W, slot ? TYPES[slot.type].color : 'rgba(0,245,255,0.1)', sellMode && slot);
+    if (slot) drawTurret(p.x + SLOT_W/2, p.y + SLOT_W/2, slot, false);
   }
 
   particles.forEach(p => {
@@ -1671,6 +1714,7 @@ function gameOver() {
 
 function restartGame() {
   document.getElementById('overlay').classList.remove('active');
+  gameStarted = true;
   initGame();
 }
 
@@ -1773,8 +1817,16 @@ function unlockSkill(tab, skill) {
 }
 
 // ── MAIN LOOP ──
+let gameStarted = false;
+
+function startGame() {
+  document.getElementById('splash').style.display = 'none';
+  gameStarted = true;
+  initGame();
+}
+
 function gameLoop() {
-  if (!skillPaused) {
+  if (gameStarted && !skillPaused) {
     // Heat cooldown
     if (!beamActive) {
       const coolRate = 0.5 * (1 + (meta.turretSkills.energy['e7'] ? 0.25 : 0) + (meta.pilotSkills['pr3'] ? 0.3 : 0));
@@ -1788,7 +1840,9 @@ function gameLoop() {
 }
 
 // ── BOOT ──
-initGame();
+// Populate splash stats
+document.getElementById('splashRank').textContent = meta.pilotRank;
+document.getElementById('splashHigh').textContent = meta.highScore || '—';
 requestAnimationFrame(gameLoop);
 </script>
 </body>
