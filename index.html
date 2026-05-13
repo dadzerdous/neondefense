@@ -1,271 +1,1795 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Strike: Merge</title>
-    <style>
-        body { margin: 0; background: #020205; color: #0ff; font-family: 'Segoe UI', sans-serif; overflow: hidden; touch-action: none; user-select: none; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 15px; left: 15px; pointer-events: none; font-weight: bold; letter-spacing: 1px; }
-        #controls { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 20px; }
-        .btn { background: rgba(0, 255, 255, 0.1); border: 2px solid #0ff; color: #0ff; padding: 12px 24px; cursor: pointer; font-size: 14px; text-transform: uppercase; box-shadow: 0 0 10px #0ff; }
-        .btn:active { background: #0ff; color: #000; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON STRIKE: MERGE</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --cyan: #00f5ff;
+    --magenta: #ff00cc;
+    --green: #00ff88;
+    --yellow: #ffe600;
+    --red: #ff2244;
+    --orange: #ff6600;
+    --bg: #030610;
+    --panel: rgba(0,20,40,0.85);
+    --kinetic: #00f5ff;
+    --energy: #cc00ff;
+    --plasma: #ff6600;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  canvas { display: block; position: absolute; top: 0; left: 0; }
+
+  /* HUD */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .hud-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .hud-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    opacity: 0.5;
+    text-transform: uppercase;
+  }
+
+  .hud-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  #waveVal { color: var(--cyan); }
+  #creditsVal { color: var(--yellow); }
+  #shieldsVal { color: var(--green); }
+  #chainVal { color: var(--magenta); }
+  #rankVal { color: var(--cyan); }
+
+  /* Shield bar */
+  #shieldBar {
+    position: absolute;
+    top: 60px;
+    left: 0; right: 0;
+    height: 3px;
+    background: rgba(0,255,136,0.15);
+    z-index: 10;
+    pointer-events: none;
+  }
+  #shieldFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), #00ffcc);
+    box-shadow: 0 0 8px var(--green);
+    transition: width 0.3s;
+  }
+
+  /* Heat bar */
+  #heatBar {
+    position: absolute;
+    bottom: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    z-index: 10;
+    pointer-events: none;
+    text-align: center;
+  }
+  #heatLabel {
+    font-size: 9px;
+    letter-spacing: 2px;
+    opacity: 0.6;
+    margin-bottom: 3px;
+  }
+  #heatTrack {
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  #heatFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta));
+    box-shadow: 0 0 6px var(--magenta);
+    transition: width 0.1s;
+    border-radius: 2px;
+  }
+
+  /* Bottom panel */
+  #bottomPanel {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 270px;
+    background: linear-gradient(0deg, rgba(0,5,15,0.97) 0%, rgba(0,10,25,0.85) 80%, transparent 100%);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  #railsLabel {
+    position: absolute;
+    bottom: 200px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 4px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 11;
+  }
+
+  #hangarLabel {
+    position: absolute;
+    bottom: 125px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 4px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 11;
+  }
+
+  /* Buttons */
+  #controls {
+    position: absolute;
+    bottom: 15px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    z-index: 20;
+  }
+
+  .btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 10px 16px;
+    border: 1px solid currentColor;
+    background: rgba(0,0,0,0.6);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .btn:active::before { opacity: 0.15; }
+
+  .btn-kinetic { color: var(--kinetic); box-shadow: 0 0 8px rgba(0,245,255,0.3); }
+  .btn-energy  { color: var(--energy);  box-shadow: 0 0 8px rgba(204,0,255,0.3); }
+  .btn-plasma  { color: var(--plasma);  box-shadow: 0 0 8px rgba(255,102,0,0.3); }
+  .btn-sell    { color: var(--red);     box-shadow: 0 0 8px rgba(255,34,68,0.2); }
+
+  /* Wave announcement */
+  #waveAnnounce {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Orbitron', monospace;
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--cyan);
+    text-shadow: 0 0 30px var(--cyan), 0 0 60px var(--cyan);
+    letter-spacing: 6px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 50;
+    transition: opacity 0.4s;
+    white-space: nowrap;
+  }
+
+  /* Chain popup */
+  #chainPopup {
+    position: absolute;
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--magenta);
+    text-shadow: 0 0 20px var(--magenta);
+    pointer-events: none;
+    z-index: 40;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  /* Skill tree overlay */
+  #skillOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  #skillOverlay.active { display: flex; }
+
+  .skill-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-shadow: 0 0 20px var(--cyan);
+  }
+
+  .skill-tabs {
+    display: flex;
+    gap: 12px;
+  }
+
+  .skill-tab {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    padding: 8px 20px;
+    border: 1px solid currentColor;
+    cursor: pointer;
+    background: transparent;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+
+  .skill-tab.kinetic { color: var(--kinetic); }
+  .skill-tab.energy  { color: var(--energy); }
+  .skill-tab.plasma  { color: var(--plasma); }
+  .skill-tab.pilot   { color: var(--yellow); }
+  .skill-tab.active  { background: currentColor; color: #000; }
+
+  .skill-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 180px);
+    gap: 12px;
+    max-width: 600px;
+  }
+
+  .skill-node {
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(0,10,20,0.8);
+    position: relative;
+  }
+
+  .skill-node.unlocked { border-color: var(--green); }
+  .skill-node.available { border-color: rgba(255,255,255,0.4); }
+  .skill-node.available:hover { background: rgba(255,255,255,0.05); transform: translateY(-2px); }
+  .skill-node.locked { opacity: 0.35; cursor: not-allowed; }
+
+  .skill-node-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .skill-node-desc {
+    font-size: 10px;
+    opacity: 0.6;
+    line-height: 1.4;
+    margin-bottom: 8px;
+  }
+
+  .skill-node-cost {
+    font-size: 10px;
+    color: var(--yellow);
+  }
+
+  .skill-xp-bar {
+    margin-top: 12px;
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+  }
+
+  .skill-xp-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    opacity: 0.5;
+    margin-bottom: 4px;
+  }
+
+  .skill-xp-track {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .skill-xp-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s;
+  }
+
+  #closeSkill {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.2);
+    background: transparent;
+    padding: 10px 30px;
+    cursor: pointer;
+    letter-spacing: 3px;
+    transition: all 0.2s;
+  }
+  #closeSkill:hover { color: white; border-color: white; }
+
+  /* Game Over / Boss screens */
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  #overlay.active { display: flex; }
+
+  .overlay-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 52px;
+    font-weight: 900;
+    letter-spacing: 6px;
+    text-shadow: 0 0 40px currentColor;
+  }
+
+  .overlay-sub {
+    font-size: 13px;
+    letter-spacing: 3px;
+    opacity: 0.6;
+  }
+
+  .overlay-stat {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    color: var(--yellow);
+  }
+
+  .overlay-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 14px 40px;
+    border: 2px solid var(--cyan);
+    background: transparent;
+    color: var(--cyan);
+    cursor: pointer;
+    letter-spacing: 3px;
+    margin-top: 10px;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px rgba(0,245,255,0.3);
+  }
+  .overlay-btn:hover { background: var(--cyan); color: #000; }
+
+  /* Prep phase timer */
+  #prepTimer {
+    position: absolute;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    color: var(--yellow);
+    letter-spacing: 3px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 15;
+    text-align: center;
+  }
+
+  /* Beam mode indicator */
+  #beamMode {
+    position: absolute;
+    bottom: 285px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    letter-spacing: 3px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 15;
+    transition: opacity 0.3s;
+    text-align: center;
+  }
+
+  /* Boss health */
+  #bossHpBar {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    z-index: 15;
+    pointer-events: none;
+  }
+  #bossHpLabel {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--red);
+    letter-spacing: 3px;
+  }
+  #bossHpTrack {
+    width: 100%;
+    height: 6px;
+    background: rgba(255,0,0,0.15);
+    border-radius: 3px;
+  }
+  #bossHpFill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), var(--orange));
+    box-shadow: 0 0 8px var(--red);
+    border-radius: 3px;
+    transition: width 0.2s;
+  }
+</style>
 </head>
 <body>
 
-    <div id="ui">
-        WAVE: <span id="waveTxt">1</span> | 
-        CREDITS: $<span id="creditTxt">50</span><br>
-        SHIELDS: <span id="shieldTxt">100%</span> | 
-        HEAT: <span id="heatTxt">0%</span>
-    </div>
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-block">
+    <div class="hud-label">Wave</div>
+    <div class="hud-value" id="waveVal">1</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Credits</div>
+    <div class="hud-value" id="creditsVal" style="color:var(--yellow)">$50</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Shields</div>
+    <div class="hud-value" id="shieldsVal" style="color:var(--green)">100%</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Chain</div>
+    <div class="hud-value" id="chainVal" style="color:var(--magenta)">x1</div>
+  </div>
+  <div class="hud-block" style="cursor:pointer" onclick="openSkills()">
+    <div class="hud-label">Pilot Rank</div>
+    <div class="hud-value" id="rankVal">1</div>
+  </div>
+</div>
 
-    <div id="controls">
-        <button class="btn" onclick="buyTurret()">Buy Turret ($15)</button>
-    </div>
+<div id="shieldBar"><div id="shieldFill" style="width:100%"></div></div>
 
-    <canvas id="gameCanvas"></canvas>
+<!-- Boss HP -->
+<div id="bossHpBar">
+  <div id="bossHpLabel">⚠ BOSS</div>
+  <div id="bossHpTrack"><div id="bossHpFill" style="width:100%"></div></div>
+</div>
+
+<!-- Prep timer -->
+<div id="prepTimer"></div>
+
+<!-- Wave announce -->
+<div id="waveAnnounce"></div>
+
+<!-- Chain popup -->
+<div id="chainPopup"></div>
+
+<!-- Heat -->
+<div id="heatBar">
+  <div id="heatLabel">BEAM HEAT</div>
+  <div id="heatTrack"><div id="heatFill" style="width:0%"></div></div>
+</div>
+
+<!-- Beam mode hint -->
+<div id="beamMode">HOLD TO FIRE BEAM</div>
+
+<div id="railsLabel">◈ ACTIVE RAILS ◈</div>
+<div id="hangarLabel">◈ HANGAR ◈</div>
+
+<div id="bottomPanel"></div>
+
+<!-- Controls -->
+<div id="controls">
+  <button class="btn btn-kinetic" onclick="buyTurret('kinetic')">⬡ KINETIC $15</button>
+  <button class="btn btn-energy"  onclick="buyTurret('energy')">◈ ENERGY $20</button>
+  <button class="btn btn-plasma"  onclick="buyTurret('plasma')">▲ PLASMA $25</button>
+  <button class="btn btn-sell"    onclick="toggleSellMode()">✕ SELL</button>
+  <button class="btn" style="color:var(--cyan)" onclick="openSkills()">⊕ SKILLS</button>
+</div>
+
+<!-- Skill Overlay -->
+<div id="skillOverlay">
+  <div class="skill-title">COMMAND CENTER</div>
+  <div class="skill-tabs">
+    <button class="skill-tab kinetic active" onclick="switchTab('kinetic')">KINETIC</button>
+    <button class="skill-tab energy"         onclick="switchTab('energy')">ENERGY</button>
+    <button class="skill-tab plasma"         onclick="switchTab('plasma')">PLASMA</button>
+    <button class="skill-tab pilot"          onclick="switchTab('pilot')">PILOT</button>
+  </div>
+  <div class="skill-grid" id="skillGrid"></div>
+  <div class="skill-xp-bar" id="xpBarContainer">
+    <div class="skill-xp-label" id="xpLabel"></div>
+    <div class="skill-xp-track"><div class="skill-xp-fill" id="xpFill"></div></div>
+  </div>
+  <button id="closeSkill" onclick="closeSkills()">CLOSE</button>
+</div>
+
+<!-- Game Over / Boss Overlay -->
+<div id="overlay">
+  <div class="overlay-title" id="overlayTitle" style="color:var(--red)">DESTROYED</div>
+  <div class="overlay-sub" id="overlaySub">YOUR BASE HAS FALLEN</div>
+  <div class="overlay-stat" id="overlayStat"></div>
+  <button class="overlay-btn" id="overlayBtn" onclick="restartGame()">DEPLOY AGAIN</button>
+</div>
+
+<canvas id="gameCanvas"></canvas>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    // Config
-    let width, height;
-    let credits = 50, wave = 1, shields = 100, heat = 0;
-    let overheated = false;
-    
-    // Game Objects
-    let hangar = Array(10).fill(null); // 10 slots
-    let rails = Array(3).fill(null);  // 3 active firing slots
-    let enemies = [];
-    let bullets = [];
-    let particles = [];
-    
-    // Interaction
-    let dragging = null, dragIdx = -1, dragFromHangar = true;
-    let mouseX = 0, mouseY = 0, isFiringBeam = false;
+// ═══════════════════════════════════════════
+// PERSISTENT META (localStorage)
+// ═══════════════════════════════════════════
+const SAVE_KEY = 'neonStrikeSave';
+let meta = loadMeta();
 
-    function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
+function loadMeta() {
+  try {
+    const s = localStorage.getItem(SAVE_KEY);
+    if (s) return JSON.parse(s);
+  } catch(e) {}
+  return {
+    pilotRank: 1,
+    pilotXP: 0,
+    turretXP: { kinetic: 0, energy: 0, plasma: 0 },
+    turretRank: { kinetic: 1, energy: 1, plasma: 1 },
+    pilotSkills: {},
+    turretSkills: { kinetic: {}, energy: {}, plasma: {} },
+    highScore: 0,
+    totalKills: 0,
+  };
+}
+
+function saveMeta() {
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(meta)); } catch(e) {}
+}
+
+// ═══════════════════════════════════════════
+// SKILL DEFINITIONS
+// ═══════════════════════════════════════════
+const TURRET_SKILLS = {
+  kinetic: [
+    { id:'k1', name:'Rapid Fire',    desc:'Fire rate +25%',         cost:100, effect:'fireRate', val:0.25 },
+    { id:'k2', name:'Piercing Shot', desc:'Bullets pierce 1 enemy', cost:200, effect:'pierce',   val:1,    req:'k1' },
+    { id:'k3', name:'Ricochet',      desc:'Bullets bounce once',    cost:400, effect:'ricochet', val:1,    req:'k2' },
+    { id:'k4', name:'Overdrive',     desc:'Fire rate +50%',         cost:300, effect:'fireRate', val:0.5,  req:'k1' },
+    { id:'k5', name:'Twin Barrel',   desc:'Fire 2 bullets',         cost:500, effect:'twin',     val:1,    req:'k4' },
+    { id:'k6', name:'Railgun',       desc:'Bullets ignore armor',   cost:800, effect:'armorpen', val:1,    req:'k5' },
+    { id:'k7', name:'Velocity+',     desc:'Bullet speed +50%',      cost:150, effect:'speed',    val:0.5 },
+    { id:'k8', name:'Magazine',      desc:'Burst of 3 shots',       cost:350, effect:'burst',    val:3,    req:'k7' },
+    { id:'k9', name:'Shredder',      desc:'Crit chance 15%',        cost:600, effect:'crit',     val:0.15, req:'k8' },
+  ],
+  energy: [
+    { id:'e1', name:'Wide Beam',     desc:'Beam width +30%',        cost:100, effect:'beamWidth',val:0.3 },
+    { id:'e2', name:'Slow Field',    desc:'Hits slow enemy 20%',    cost:200, effect:'slow',     val:0.2,  req:'e1' },
+    { id:'e3', name:'Shield Drain',  desc:'+50% vs shields',        cost:400, effect:'shieldbns',val:0.5,  req:'e2' },
+    { id:'e4', name:'Overcharge',    desc:'Dmg +40% when hot',      cost:300, effect:'heatbonus',val:0.4,  req:'e1' },
+    { id:'e5', name:'Chain Arc',     desc:'Arcs to 2nd enemy',      cost:500, effect:'arc',      val:2,    req:'e4' },
+    { id:'e6', name:'Ion Storm',     desc:'All-lane pulse every 10s',cost:800,effect:'pulse',    val:1,    req:'e5' },
+    { id:'e7', name:'Capacitor',     desc:'Heat cools 25% faster',  cost:150, effect:'cooldown', val:0.25 },
+    { id:'e8', name:'Focus Lens',    desc:'Damage +30%',            cost:350, effect:'dmgBonus', val:0.3,  req:'e7' },
+    { id:'e9', name:'Overload',      desc:'Level 3 bursts on kill', cost:600, effect:'overload', val:1,    req:'e8' },
+  ],
+  plasma: [
+    { id:'p1', name:'Blast Radius',  desc:'AOE +20%',               cost:100, effect:'aoe',      val:0.2 },
+    { id:'p2', name:'Burn DoT',      desc:'Leaves burn 2s',         cost:200, effect:'burn',     val:2,    req:'p1' },
+    { id:'p3', name:'Splash Chain',  desc:'Explosion hits chain',   cost:400, effect:'chain',    val:1,    req:'p2' },
+    { id:'p4', name:'Napalm',        desc:'Burn damage +50%',       cost:300, effect:'burnDmg',  val:0.5,  req:'p1' },
+    { id:'p5', name:'Sticky Fire',   desc:'Burn slows enemy',       cost:500, effect:'burnSlow', val:0.3,  req:'p4' },
+    { id:'p6', name:'Inferno',       desc:'AOE pulses on kill',     cost:800, effect:'inferno',  val:1,    req:'p5' },
+    { id:'p7', name:'Heat Sink',     desc:'Plasma generates less heat',cost:150,effect:'heatRed',val:0.25 },
+    { id:'p8', name:'Superheated',   desc:'Dmg +25% per wave',      cost:350, effect:'waveBonus',val:0.25, req:'p7' },
+    { id:'p9', name:'Meltdown',      desc:'Rare instant-kill 5%',   cost:600, effect:'instakill',val:0.05, req:'p8' },
+  ],
+};
+
+const PILOT_SKILLS = [
+  { id:'pr1', name:'Veteran Start',  desc:'Start with +$30',         cost:50,  effect:'startCredits', val:30 },
+  { id:'pr2', name:'Salvage',        desc:'Kill credit +$1',         cost:80,  effect:'killBonus',    val:1 },
+  { id:'pr3', name:'Fast Cooldown',  desc:'Beam cools 30% faster',   cost:60,  effect:'beamCool',     val:0.3 },
+  { id:'pr4', name:'Chain Master',   desc:'Chain mult lasts longer', cost:100, effect:'chainTime',    val:1.5 },
+  { id:'pr5', name:'Iron Will',      desc:'Start with +10 shields',  cost:70,  effect:'startShields', val:10 },
+  { id:'pr6', name:'Efficiency',     desc:'Turrets 10% cheaper',     cost:120, effect:'discount',     val:0.1 },
+  { id:'pr7', name:'Overclock',      desc:'Unlock Lvl4 turrets',     cost:200, effect:'overclock',    val:1 },
+  { id:'pr8', name:'Arsenal',        desc:'+1 rail slot',            cost:300, effect:'railSlot',     val:1 },
+  { id:'pr9', name:'Hangar Bay',     desc:'+2 hangar slots',         cost:250, effect:'hangarSlot',   val:2 },
+];
+
+const PILOT_XP_PER_RANK = [0,100,200,350,550,800,1100,1500,2000,2600];
+const TURRET_XP_PER_RANK = [0,80,180,320,500,750];
+
+// ═══════════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════════
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+// Session state
+let credits, shields, wave, heat, overheated;
+let chainCount, chainTimer, chainTimeout = 1800; // ms
+let lastKillTime = 0;
+let sellMode = false;
+
+// Game objects
+let hangar, rails;
+let enemies, bullets, particles, floaters;
+let boss = null;
+let bossMaxHp = 0;
+
+// Wave system
+let phase; // 'prep' | 'combat'
+let prepCountdown;
+let enemiesThisWave, enemiesSpawned, enemiesKilled;
+let waveEnemyDef = [];
+
+// Dragging
+let dragging = null, dragFromHangar = true, dragFromIdx = -1;
+let mouseX = 0, mouseY = 0;
+
+// Beam
+let beamActive = false, beamX = 0, beamY = 0;
+
+// Damage types
+const TYPES = {
+  kinetic: { color: '#00f5ff', weakVs: 'blue',   strongVs: 'purple' },
+  energy:  { color: '#cc00ff', weakVs: 'purple', strongVs: 'red'    },
+  plasma:  { color: '#ff6600', weakVs: 'red',    strongVs: 'blue'   },
+};
+
+const ENEMY_TYPES = [
+  { id:'blue',   color:'#00aaff', shape:'rect',     hpMult:1,   speedMult:1,    reward:3,  weakTo:'kinetic', armor:'energy',  label:'SCOUT'  },
+  { id:'purple', color:'#cc00ff', shape:'diamond',  hpMult:1.3, speedMult:0.8,  reward:4,  weakTo:'energy',  armor:'kinetic', label:'PHANTOM'},
+  { id:'red',    color:'#ff2244', shape:'triangle', hpMult:1.8, speedMult:0.6,  reward:6,  weakTo:'plasma',  armor:'energy',  label:'TANK'   },
+  { id:'yellow', color:'#ffe600', shape:'circle',   hpMult:0.6, speedMult:1.8,  reward:5,  weakTo:'kinetic', armor:'plasma',  label:'RUNNER' },
+  { id:'orange', color:'#ff6600', shape:'star',     hpMult:2,   speedMult:0.9,  reward:8,  weakTo:'plasma',  armor:'kinetic', label:'BRUTE'  },
+];
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function getSlotPos(i) {
+  const hangarSlots = getHangarSlots();
+  const cols = Math.min(hangarSlots, 6);
+  const totalW = cols * 55;
+  const row = Math.floor(i / cols);
+  const col = i % cols;
+  return { x: (W/2 - totalW/2) + col*55, y: H - 155 + row*55 };
+}
+
+function getRailPos(i) {
+  const railSlots = getRailSlots();
+  const totalW = railSlots * 70;
+  return { x: (W/2 - totalW/2) + i*70, y: H - 240 };
+}
+
+function getRailSlots() { return meta.pilotSkills['pr8'] ? 4 : 3; }
+function getHangarSlots() { return (meta.pilotSkills['pr9'] ? 12 : 10); }
+
+function getStartCredits() { return 50 + (meta.pilotSkills['pr1'] ? 30 : 0); }
+function getStartShields() { return 100 + (meta.pilotSkills['pr5'] ? 10 : 0); }
+
+function initGame() {
+  credits = getStartCredits();
+  shields = getStartShields();
+  wave = 1;
+  heat = 0;
+  overheated = false;
+  chainCount = 1;
+  chainTimer = 0;
+  hangar = Array(getHangarSlots()).fill(null);
+  rails = Array(getRailSlots()).fill(null);
+  enemies = [];
+  bullets = [];
+  particles = [];
+  floaters = [];
+  boss = null;
+  dragging = null;
+  beamActive = false;
+  sellMode = false;
+  startPrepPhase();
+  document.getElementById('overlay').classList.remove('active');
+}
+
+// ═══════════════════════════════════════════
+// WAVE SYSTEM
+// ═══════════════════════════════════════════
+function startPrepPhase() {
+  phase = 'prep';
+  prepCountdown = wave <= 1 ? 8 : 6; // seconds
+  const pt = document.getElementById('prepTimer');
+  pt.style.opacity = '1';
+  announceWave();
+}
+
+function announceWave() {
+  const el = document.getElementById('waveAnnounce');
+  const isBoss = wave % 5 === 0;
+  el.textContent = isBoss ? `⚠ BOSS WAVE ${wave} ⚠` : `WAVE ${wave}`;
+  el.style.color = isBoss ? 'var(--red)' : 'var(--cyan)';
+  el.style.textShadow = isBoss
+    ? '0 0 30px var(--red), 0 0 60px var(--red)'
+    : '0 0 30px var(--cyan), 0 0 60px var(--cyan)';
+  el.style.opacity = '1';
+  setTimeout(() => el.style.opacity = '0', 2500);
+}
+
+function buildWaveEnemyDef() {
+  waveEnemyDef = [];
+  const isBoss = wave % 5 === 0;
+  if (isBoss) return; // boss handled separately
+
+  // Scale: wave 1 = 4 enemies, +2 per wave, max 30
+  const count = Math.min(4 + (wave - 1) * 2, 30);
+  const types = wave < 3 ? ['blue'] :
+                wave < 5 ? ['blue','purple'] :
+                wave < 8 ? ['blue','purple','yellow'] :
+                           ['blue','purple','yellow','red','orange'];
+
+  for (let i = 0; i < count; i++) {
+    const tId = types[Math.floor(Math.random() * types.length)];
+    const def = ENEMY_TYPES.find(e => e.id === tId);
+    const delay = 60 + i * Math.max(20, 80 - wave * 3); // frames
+    waveEnemyDef.push({ ...def, delay, spawned: false });
+  }
+  enemiesThisWave = count;
+  enemiesSpawned = 0;
+  enemiesKilled = 0;
+}
+
+function startCombatPhase() {
+  phase = 'combat';
+  document.getElementById('prepTimer').style.opacity = '0';
+  buildWaveEnemyDef();
+
+  const isBoss = wave % 5 === 0;
+  if (isBoss) spawnBoss();
+}
+
+let frameCount = 0;
+let spawnFrame = 0;
+
+function spawnBoss() {
+  const bossHp = 80 + wave * 30;
+  bossMaxHp = bossHp;
+  boss = {
+    x: W/2, y: -40,
+    hp: bossHp, maxHp: bossHp,
+    speed: 0.8 + wave * 0.05,
+    phase2: false,
+    dir: 1,
+    lateralSpeed: 1.5 + wave * 0.1,
+    size: 40,
+    reward: 50 + wave * 10,
+    color: '#ff2244',
+    burnTimer: 0,
+    burnDmg: 0,
+    slowTimer: 0,
+    armor: 0,
+  };
+  document.getElementById('bossHpBar').style.display = 'flex';
+}
+
+// ═══════════════════════════════════════════
+// INPUT
+// ═══════════════════════════════════════════
+canvas.addEventListener('pointerdown', e => {
+  const x = e.clientX, y = e.clientY;
+  // Ignore UI area
+  if (y > H - 270) return;
+
+  // Check sell mode click
+  if (sellMode) {
+    hangar.forEach((slot, i) => {
+      if (!slot) return;
+      const p = getSlotPos(i);
+      if (x > p.x && x < p.x+50 && y > p.y && y < p.y+50) {
+        credits += Math.floor(getTurretBuyCost(slot.type) * 0.4 * slot.level);
+        hangar[i] = null;
+      }
+    });
+    rails.forEach((slot, i) => {
+      if (!slot) return;
+      const p = getRailPos(i);
+      if (x > p.x && x < p.x+65 && y > p.y && y < p.y+65) {
+        credits += Math.floor(getTurretBuyCost(slot.type) * 0.4 * slot.level);
+        rails[i] = null;
+      }
+    });
+    return;
+  }
+
+  // Drag from hangar
+  let picked = false;
+  hangar.forEach((slot, i) => {
+    if (picked || !slot) return;
+    const p = getSlotPos(i);
+    if (x > p.x && x < p.x+50 && y > p.y && y < p.y+50) {
+      dragging = slot; dragFromIdx = i; dragFromHangar = true;
+      hangar[i] = null; picked = true;
     }
-    window.addEventListener('resize', resize);
-    resize();
+  });
 
-    // Input
-    canvas.addEventListener('pointerdown', e => {
-        const x = e.clientX, y = e.clientY;
-        // Check Hangar Click
-        hangar.forEach((slot, i) => {
-            let sX = getSlotPos(i).x, sY = getSlotPos(i).y;
-            if (x > sX && x < sX+50 && y > sY && y < sY+50 && slot) {
-                dragging = slot; dragIdx = i; dragFromHangar = true;
-                hangar[i] = null;
-            }
-        });
-        // Check Rails Click
-        rails.forEach((slot, i) => {
-            let sX = getRailPos(i).x, sY = getRailPos(i).y;
-            if (x > sX && x < sX+60 && y > sY && y < sY+60 && slot) {
-                dragging = slot; dragIdx = i; dragFromHangar = false;
-                rails[i] = null;
-            }
-        });
-        if (!dragging) isFiringBeam = true;
-        updateMouse(e);
+  // Drag from rail
+  if (!picked) {
+    rails.forEach((slot, i) => {
+      if (picked || !slot) return;
+      const p = getRailPos(i);
+      if (x > p.x && x < p.x+65 && y > p.y && y < p.y+65) {
+        dragging = slot; dragFromIdx = i; dragFromHangar = false;
+        rails[i] = null; picked = true;
+      }
+    });
+  }
+
+  if (!picked) {
+    beamActive = true;
+    beamX = x; beamY = y;
+  }
+  updateMouse(e);
+});
+
+canvas.addEventListener('pointermove', e => {
+  updateMouse(e);
+  if (beamActive) { beamX = e.clientX; beamY = e.clientY; }
+});
+
+canvas.addEventListener('pointerup', e => {
+  updateMouse(e);
+  if (dragging) {
+    let dropped = false;
+
+    hangar.forEach((slot, i) => {
+      if (dropped) return;
+      const p = getSlotPos(i);
+      if (mouseX > p.x && mouseX < p.x+50 && mouseY > p.y && mouseY < p.y+50) {
+        if (!slot) {
+          hangar[i] = dragging; dropped = true;
+        } else if (slot.level === dragging.level && slot.type === dragging.type && slot.level < getMaxLevel()) {
+          slot.level++;
+          gainTurretXP(slot.type, 20);
+          hangar[i] = slot; dropped = true;
+          spawnMergeEffect(p.x+25, p.y+25, TYPES[slot.type].color);
+        }
+      }
     });
 
-    canvas.addEventListener('pointermove', e => { updateMouse(e); });
-    canvas.addEventListener('pointerup', e => {
-        if (dragging) {
-            let dropped = false;
-            // Try drop in Hangar
-            hangar.forEach((slot, i) => {
-                let sX = getSlotPos(i).x, sY = getSlotPos(i).y;
-                if (mouseX > sX && mouseX < sX+50 && mouseY > sY && mouseY < sY+50) {
-                    if (!slot) { hangar[i] = dragging; dropped = true; }
-                    else if (slot.level === dragging.level) {
-                        slot.level++; hangar[i] = slot; dropped = true;
-                        createExplosion(sX+25, sY+25, '#0ff', 15);
-                    }
-                }
-            });
-            // Try drop in Rail
-            rails.forEach((slot, i) => {
-                let sX = getRailPos(i).x, sY = getRailPos(i).y;
-                if (mouseX > sX && mouseX < sX+60 && mouseY > sY && mouseY < sY+60) {
-                    if (!slot) { rails[i] = dragging; dropped = true; }
-                    else { // Swap
-                        let old = rails[i]; rails[i] = dragging;
-                        returnToHangar(old); dropped = true;
-                    }
-                }
-            });
-
-            if (!dropped) returnToHangar(dragging);
-            dragging = null;
+    if (!dropped) {
+      rails.forEach((slot, i) => {
+        if (dropped) return;
+        const p = getRailPos(i);
+        if (mouseX > p.x && mouseX < p.x+65 && mouseY > p.y && mouseY < p.y+65) {
+          if (!slot) { rails[i] = dragging; dropped = true; }
+          else if (slot.level === dragging.level && slot.type === dragging.type && slot.level < getMaxLevel()) {
+            slot.level++;
+            gainTurretXP(slot.type, 20);
+            rails[i] = slot; dropped = true;
+            spawnMergeEffect(p.x+32, p.y+32, TYPES[slot.type].color);
+          } else {
+            // swap
+            const old = rails[i]; rails[i] = dragging;
+            returnToHangar(old); dropped = true;
+          }
         }
-        isFiringBeam = false;
-    });
-
-    function updateMouse(e) { mouseX = e.clientX; mouseY = e.clientY; }
-    function getSlotPos(i) { return { x: (width/2 - 135) + (i % 5)*55, y: height - 160 + (Math.floor(i/5)*55) }; }
-    function getRailPos(i) { return { x: (width/2 - 95) + (i*65), y: height - 250 }; }
-    function returnToHangar(item) {
-        let idx = hangar.findIndex(s => s === null);
-        if (idx !== -1) hangar[idx] = item;
+      });
     }
 
-    function buyTurret() {
-        if (credits >= 15) {
-            let idx = hangar.findIndex(s => s === null);
-            if (idx !== -1) { credits -= 15; hangar[idx] = { level: 1, timer: 0 }; }
+    if (!dropped) returnToHangar(dragging);
+    dragging = null;
+  }
+  beamActive = false;
+});
+
+function updateMouse(e) { mouseX = e.clientX; mouseY = e.clientY; }
+
+function returnToHangar(item) {
+  const idx = hangar.findIndex(s => s === null);
+  if (idx !== -1) hangar[idx] = item;
+}
+
+function getMaxLevel() { return meta.pilotSkills['pr7'] ? 4 : 3; }
+
+// ═══════════════════════════════════════════
+// BUYING & SELLING
+// ═══════════════════════════════════════════
+function getTurretBuyCost(type) {
+  const base = { kinetic:15, energy:20, plasma:25 }[type];
+  const disc = meta.pilotSkills['pr6'] ? 0.9 : 1;
+  return Math.floor(base * disc);
+}
+
+function buyTurret(type) {
+  const cost = getTurretBuyCost(type);
+  if (credits < cost) return;
+  const idx = hangar.findIndex(s => s === null);
+  if (idx === -1) return;
+  credits -= cost;
+  hangar[idx] = { type, level: 1, timer: 0, xp: 0 };
+}
+
+function toggleSellMode() {
+  sellMode = !sellMode;
+  document.querySelector('.btn-sell').style.background = sellMode ? 'var(--red)' : '';
+  document.querySelector('.btn-sell').style.color = sellMode ? '#000' : '';
+}
+
+// ═══════════════════════════════════════════
+// PARTICLES & EFFECTS
+// ═══════════════════════════════════════════
+function spawnParticles(x, y, color, count, speed=6) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const s = (Math.random() * 0.5 + 0.5) * speed;
+    particles.push({ x, y, vx: Math.cos(angle)*s, vy: Math.sin(angle)*s, life: 1, color, size: Math.random()*3+1 });
+  }
+}
+
+function spawnMergeEffect(x, y, color) {
+  for (let i = 0; i < 20; i++) {
+    const angle = (i / 20) * Math.PI * 2;
+    particles.push({ x, y, vx: Math.cos(angle)*5, vy: Math.sin(angle)*5, life: 1, color, size: 2 });
+  }
+}
+
+function spawnFloater(x, y, text, color) {
+  floaters.push({ x, y, text, color, life: 1, vy: -1.5 });
+}
+
+// ═══════════════════════════════════════════
+// CHAIN KILL
+// ═══════════════════════════════════════════
+function registerKill(x, y, reward, type) {
+  const now = Date.now();
+  const chainTimeMs = meta.pilotSkills['pr4'] ? chainTimeout * 1.5 : chainTimeout;
+  if (now - lastKillTime < chainTimeMs) {
+    chainCount = Math.min(chainCount + 1, 8);
+  } else {
+    chainCount = 1;
+  }
+  lastKillTime = now;
+
+  const bonus = meta.pilotSkills['pr2'] ? 1 : 0;
+  const earned = Math.floor(reward * chainCount) + bonus;
+  credits += earned;
+  gainPilotXP(2 + chainCount);
+  gainTurretXP(type, 5);
+
+  spawnFloater(x, y, `+$${earned}${chainCount > 1 ? ` x${chainCount}` : ''}`, chainCount > 2 ? '#ffe600' : '#00ff88');
+
+  if (chainCount >= 3) {
+    const cp = document.getElementById('chainPopup');
+    cp.textContent = `CHAIN x${chainCount}!`;
+    cp.style.left = (x - 50) + 'px';
+    cp.style.top = (y - 40) + 'px';
+    cp.style.opacity = '1';
+    setTimeout(() => cp.style.opacity = '0', 800);
+  }
+}
+
+// ═══════════════════════════════════════════
+// XP & RANKS
+// ═══════════════════════════════════════════
+function gainPilotXP(amount) {
+  meta.pilotXP += amount;
+  const maxRank = PILOT_XP_PER_RANK.length;
+  while (meta.pilotRank < maxRank && meta.pilotXP >= getNextPilotXP()) {
+    meta.pilotXP -= getNextPilotXP();
+    meta.pilotRank++;
+    spawnFloater(W/2, H/2 - 60, `PILOT RANK UP! ${meta.pilotRank}`, '#ffe600');
+  }
+  saveMeta();
+}
+
+function gainTurretXP(type, amount) {
+  if (!type) return;
+  meta.turretXP[type] += amount;
+  const maxRank = TURRET_XP_PER_RANK.length;
+  while (meta.turretRank[type] < maxRank && meta.turretXP[type] >= getNextTurretXP(type)) {
+    meta.turretXP[type] -= getNextTurretXP(type);
+    meta.turretRank[type]++;
+    spawnFloater(W/2, H/2 - 40, `${type.toUpperCase()} RANK UP!`, TYPES[type].color);
+  }
+  saveMeta();
+}
+
+function getNextPilotXP() {
+  return PILOT_XP_PER_RANK[Math.min(meta.pilotRank, PILOT_XP_PER_RANK.length-1)];
+}
+
+function getNextTurretXP(type) {
+  return TURRET_XP_PER_RANK[Math.min(meta.turretRank[type], TURRET_XP_PER_RANK.length-1)];
+}
+
+// ═══════════════════════════════════════════
+// DAMAGE CALC
+// ═══════════════════════════════════════════
+function calcDamage(bullet, enemy) {
+  let dmg = bullet.power;
+  if (enemy.weakTo === bullet.type) dmg *= 1.6;
+  if (enemy.armor === bullet.type) dmg *= 0.5;
+  // Skill modifiers
+  if (bullet.type === 'energy' && meta.turretSkills.energy['e8']) dmg *= 1.3;
+  if (bullet.type === 'plasma' && meta.turretSkills.plasma['p8']) dmg *= (1 + 0.25 * (wave / 5));
+  if (bullet.type === 'kinetic' && meta.turretSkills.kinetic['k9'] && Math.random() < 0.15) dmg *= 2; // crit
+  return dmg;
+}
+
+// ═══════════════════════════════════════════
+// UPDATE
+// ═══════════════════════════════════════════
+let prepTimer = 0;
+let ionPulseTimer = 0;
+
+function update() {
+  frameCount++;
+
+  // ── PREP PHASE ──
+  if (phase === 'prep') {
+    prepTimer++;
+    if (prepTimer >= 60) {
+      prepTimer = 0;
+      prepCountdown--;
+      const pt = document.getElementById('prepTimer');
+      pt.textContent = `PREP: ${prepCountdown}s — BUY & MERGE`;
+      if (prepCountdown <= 0) startCombatPhase();
+    }
+    updateParticles();
+    updateFloaters();
+    return;
+  }
+
+  // ── COMBAT PHASE ──
+
+  // Spawn enemies
+  waveEnemyDef.forEach(def => {
+    if (!def.spawned && frameCount >= spawnFrame + def.delay) {
+      spawnEnemy(def);
+      def.spawned = true;
+      enemiesSpawned++;
+    }
+  });
+
+  // Beam
+  updateBeam();
+
+  // Turrets fire
+  updateTurrets();
+
+  // Bullets
+  updateBullets();
+
+  // Enemies
+  updateEnemies();
+
+  // Boss
+  if (boss) updateBoss();
+
+  // Ion storm
+  if (meta.turretSkills.energy['e6']) {
+    ionPulseTimer++;
+    if (ionPulseTimer >= 600) {
+      ionPulseTimer = 0;
+      enemies.forEach(en => { en.hp -= 8; spawnParticles(en.x, en.y, '#cc00ff', 4); });
+    }
+  }
+
+  // Particles & floaters
+  updateParticles();
+  updateFloaters();
+
+  // Chain decay
+  if (Date.now() - lastKillTime > (meta.pilotSkills['pr4'] ? chainTimeout * 1.5 : chainTimeout) + 200) {
+    chainCount = 1;
+  }
+
+  // Wave complete check
+  if (phase === 'combat' && !boss && enemiesSpawned >= enemiesThisWave && enemies.length === 0) {
+    const waveBonus = 10 + wave * 5;
+    credits += waveBonus;
+    spawnFloater(W/2, H/2, `WAVE CLEAR +$${waveBonus}`, '#ffe600');
+    gainPilotXP(10 + wave * 2);
+    wave++;
+    setTimeout(startPrepPhase, 1500);
+    spawnFrame = frameCount;
+  }
+
+  // Update HUD
+  document.getElementById('waveVal').textContent = wave;
+  document.getElementById('creditsVal').textContent = '$' + credits;
+  document.getElementById('shieldsVal').textContent = shields + '%';
+  document.getElementById('chainVal').textContent = 'x' + chainCount;
+  document.getElementById('rankVal').textContent = meta.pilotRank;
+  document.getElementById('shieldFill').style.width = Math.max(0, shields) + '%';
+  document.getElementById('heatFill').style.width = heat + '%';
+  if (overheated) document.getElementById('heatFill').style.background = 'var(--red)';
+  else document.getElementById('heatFill').style.background = '';
+}
+
+function updateBeam() {
+  if (!beamActive || overheated || dragging || phase !== 'combat') return;
+  const heatRate = meta.turretSkills.plasma['p7'] ? 0.9 : 1.2;
+  heat += heatRate;
+  if (heat >= 100) { heat = 100; overheated = true; beamActive = false; return; }
+
+  const beamDmg = meta.turretSkills.energy['e8'] ? 0.7 : 0.5;
+  const beamRadius = 30 * (1 + (meta.turretSkills.energy['e1'] ? 0.3 : 0));
+
+  enemies.forEach(en => {
+    if (Math.hypot(en.x - beamX, en.y - beamY) < beamRadius) {
+      let dmg = beamDmg;
+      if (meta.turretSkills.energy['e4'] && heat > 60) dmg *= (1 + 0.4);
+      en.hp -= dmg;
+      if (Math.random() < 0.1) spawnParticles(en.x, en.y, '#ff00cc', 1, 3);
+    }
+  });
+  if (boss && Math.hypot(boss.x - beamX, boss.y - beamY) < beamRadius * 1.5) {
+    boss.hp -= beamDmg * 0.5;
+  }
+}
+
+function updateTurrets() {
+  const allTurrets = [
+    ...rails.map((s,i) => s ? { slot:s, pos:getRailPos(i), isRail:true } : null),
+  ].filter(Boolean);
+
+  allTurrets.forEach(({ slot, pos }) => {
+    slot.timer++;
+    const rank = meta.turretRank[slot.type] || 1;
+    const fireRateBonus = meta.turretSkills[slot.type]?.[slot.type[0]+'1'] ? 1.25 : 1;
+    const fireRateBonus2 = meta.turretSkills[slot.type]?.[slot.type[0]+'4'] ? 1.5 : 1;
+    const finalRate = fireRateBonus * fireRateBonus2;
+    const fireInterval = Math.floor((40 - slot.level * 5 - rank * 2) / finalRate);
+
+    if (slot.timer >= Math.max(fireInterval, 8)) {
+      slot.timer = 0;
+      gainTurretXP(slot.type, 1);
+
+      // Find target (closest enemy)
+      let target = null, minDist = 9999;
+      enemies.forEach(en => {
+        const d = Math.hypot(en.x - (pos.x+32), en.y - pos.y);
+        if (d < minDist) { minDist = d; target = en; }
+      });
+      if (!target && boss) target = boss;
+
+      if (target) {
+        const angle = Math.atan2(target.y - pos.y, target.x - (pos.x+32));
+        const spd = 12 * (1 + (meta.turretSkills[slot.type]?.[slot.type[0]+'7'] ? 0.5 : 0));
+        fireBullet(pos.x+32, pos.y+32, angle, spd, slot);
+
+        if (meta.turretSkills[slot.type]?.[slot.type[0]+'5'] && slot.type === 'kinetic') {
+          // Twin barrel
+          fireBullet(pos.x+32, pos.y+32, angle + 0.15, spd, slot);
         }
+      }
+    }
+  });
+}
+
+function fireBullet(x, y, angle, speed, slot) {
+  bullets.push({
+    x, y,
+    vx: Math.cos(angle) * speed,
+    vy: Math.sin(angle) * speed,
+    type: slot.type,
+    power: slot.level * (1 + (meta.turretRank[slot.type]-1) * 0.15),
+    pierce: meta.turretSkills[slot.type]?.[slot.type[0]+'2'] ? 1 : 0,
+    life: 120,
+  });
+}
+
+function updateBullets() {
+  for (let i = bullets.length-1; i >= 0; i--) {
+    const b = bullets[i];
+    b.x += b.vx; b.y += b.vy;
+    b.life--;
+    if (b.life <= 0 || b.x < 0 || b.x > W || b.y < 0 || b.y > H) {
+      bullets.splice(i, 1); continue;
     }
 
-    function createExplosion(x, y, color, count) {
-        for(let i=0; i<count; i++) particles.push({x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1, color});
-    }
+    let hit = false;
+    for (let j = enemies.length-1; j >= 0; j--) {
+      const en = enemies[j];
+      if (Math.hypot(en.x - b.x, en.y - b.y) < 18) {
+        const dmg = calcDamage(b, en);
+        en.hp -= dmg;
 
-    function update() {
-        // Manual Beam
-        if (isFiringBeam && !overheated && !dragging) {
-            heat += 1.2;
-            if (heat >= 100) { heat = 100; overheated = true; isFiringBeam = false; }
-            enemies.forEach(en => {
-                if (Math.hypot(en.x - mouseX, en.y - mouseY) < 40) en.hp -= 0.5;
-            });
-        } else {
-            heat = Math.max(0, heat - 0.4);
-            if (heat === 0) overheated = false;
+        // Slow on hit (energy)
+        if (b.type === 'energy' && meta.turretSkills.energy['e2']) {
+          en.slowTimer = 90; en.slowAmt = 0.2;
+        }
+        // Burn (plasma)
+        if (b.type === 'plasma' && meta.turretSkills.plasma['p2']) {
+          en.burnTimer = 120;
+          en.burnDmg = 0.3 * (1 + (meta.turretSkills.plasma['p4'] ? 0.5 : 0));
+        }
+        // Instakill (plasma p9)
+        if (b.type === 'plasma' && meta.turretSkills.plasma['p9'] && Math.random() < 0.05) {
+          en.hp = -9999;
         }
 
-        // Turret Firing (Only on Rails)
-        rails.forEach((slot, i) => {
-            if (slot) {
-                slot.timer++;
-                if (slot.timer > (30 / slot.level)) {
-                    let p = getRailPos(i);
-                    bullets.push({x: p.x+30, y: p.y, vy: -10, power: slot.level});
-                    slot.timer = 0;
-                }
-            }
-        });
+        spawnParticles(en.x, en.y, TYPES[b.type].color, 2, 4);
 
-        // Bullets & Enemies
-        bullets.forEach((b, i) => {
-            b.y += b.vy;
-            if (b.y < 0) bullets.splice(i, 1);
-        });
+        if (b.pierce > 0) { b.pierce--; }
+        else { bullets.splice(i, 1); hit = true; }
 
-        if (Math.random() < 0.02 + (wave * 0.005)) {
-            enemies.push({x: Math.random()*width, y: -20, hp: 3 + wave, speed: 1 + (wave*0.1)});
-        }
-
-        enemies.forEach((en, i) => {
-            en.y += en.speed;
-            bullets.forEach((b, bi) => {
-                if (Math.hypot(en.x - b.x, en.y - b.y) < 20) {
-                    en.hp -= b.power; bullets.splice(bi, 1);
-                    createExplosion(en.x, en.y, '#f0f', 2);
-                }
-            });
-            if (en.hp <= 0) {
-                createExplosion(en.x, en.y, '#0f0', 8);
-                enemies.splice(i, 1); credits += 2;
-                if (enemies.length === 0 && Math.random() < 0.1) wave++;
-            }
-            if (en.y > height - 260) {
-                shields -= 10; enemies.splice(i, 1);
-                if (shields <= 0) { alert("Game Over! Wave: " + wave); location.reload(); }
-            }
-        });
-
-        particles.forEach((p, i) => {
-            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-            if (p.life <= 0) particles.splice(i, 1);
-        });
-
-        // UI
-        document.getElementById('waveTxt').innerText = wave;
-        document.getElementById('creditTxt').innerText = credits;
-        document.getElementById('shieldTxt').innerText = shields + "%";
-        document.getElementById('heatTxt').innerText = Math.floor(heat) + "%";
-        document.getElementById('heatTxt').style.color = overheated ? "#f0f" : "#0ff";
+        if (en.hp <= 0) killEnemy(j);
+        break;
+      }
     }
 
-    function draw() {
-        ctx.fillStyle = '#020205';
-        ctx.fillRect(0, 0, width, height);
+    // Boss hit
+    if (!hit && boss && Math.hypot(boss.x - b.x, boss.y - b.y) < boss.size) {
+      const dmg = calcDamage(b, boss);
+      boss.hp -= dmg;
+      spawnParticles(boss.x, boss.y, TYPES[b.type].color, 3, 5);
+      bullets.splice(i, 1);
+    }
+  }
+}
 
-        // Grid lines (Neon feel)
-        ctx.strokeStyle = '#050a15';
-        for(let i=0; i<width; i+=40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, height); ctx.stroke(); }
+function updateEnemies() {
+  for (let i = enemies.length-1; i >= 0; i--) {
+    const en = enemies[i];
 
-        // Draw Rails
-        rails.forEach((slot, i) => {
-            let p = getRailPos(i);
-            ctx.strokeStyle = '#0ff';
-            ctx.setLineDash([5, 5]);
-            ctx.strokeRect(p.x, p.y, 60, 60);
-            ctx.setLineDash([]);
-            if (slot) drawTurret(p.x+30, p.y+30, slot.level);
-        });
-
-        // Draw Hangar
-        hangar.forEach((slot, i) => {
-            let p = getSlotPos(i);
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
-            ctx.strokeRect(p.x, p.y, 50, 50);
-            if (slot) drawTurret(p.x+25, p.y+25, slot.level);
-        });
-
-        // Manual Beam
-        if (isFiringBeam && !overheated && !dragging) {
-            ctx.shadowBlur = 15; ctx.shadowColor = '#f0f';
-            ctx.strokeStyle = '#f0f'; ctx.lineWidth = 4;
-            ctx.beginPath(); ctx.moveTo(width/2, height-250); ctx.lineTo(mouseX, mouseY); ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
-
-        enemies.forEach(en => {
-            ctx.strokeStyle = '#0f0'; ctx.strokeRect(en.x-10, en.y-10, 20, 20);
-        });
-
-        bullets.forEach(b => {
-            ctx.fillStyle = '#ff0'; ctx.fillRect(b.x-2, b.y-5, 4, 10);
-        });
-
-        particles.forEach(p => {
-            ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
-            ctx.fillRect(p.x, p.y, 3, 3);
-        });
-        ctx.globalAlpha = 1;
-
-        if (dragging) drawTurret(mouseX, mouseY, dragging.level);
-
-        requestAnimationFrame(() => { update(); draw(); });
+    // Burn tick
+    if (en.burnTimer > 0) {
+      en.burnTimer--;
+      en.hp -= en.burnDmg;
+      if (meta.turretSkills.plasma['p5']) en.slowTimer = 30;
+      if (en.hp <= 0) { killEnemy(i); continue; }
     }
 
-    function drawTurret(x, y, lvl) {
-        ctx.shadowBlur = 10; ctx.shadowColor = '#0ff';
-        ctx.strokeStyle = '#0ff'; ctx.lineWidth = 2;
-        ctx.beginPath();
-        if (lvl === 1) ctx.arc(x, y, 15, 0, Math.PI*2);
-        else if (lvl === 2) ctx.strokeRect(x-15, y-15, 30, 30);
-        else ctx.moveTo(x, y-18), ctx.lineTo(x+18, y+15), ctx.lineTo(x-18, y+15), ctx.closePath();
-        ctx.stroke();
-        ctx.fillStyle = '#0ff';
-        ctx.font = "12px Arial";
-        ctx.fillText(lvl, x-4, y+5);
-        ctx.shadowBlur = 0;
+    const slowMult = en.slowTimer > 0 ? (1 - (en.slowAmt || 0.2)) : 1;
+    if (en.slowTimer > 0) en.slowTimer--;
+
+    en.y += en.speed * slowMult;
+    en.x += (en.driftX || 0);
+
+    // Boss summons and red enemies drift
+    if (en.id === 'yellow') en.driftX = Math.sin(frameCount * 0.05 + en.phase) * 0.5;
+
+    if (en.y > H - 275) {
+      shields -= 8;
+      enemies.splice(i, 1);
+      spawnParticles(en.x, H-275, '#ff2244', 8, 5);
+      if (shields <= 0) gameOver();
+    }
+  }
+}
+
+function killEnemy(idx) {
+  const en = enemies[idx];
+  if (!en) return;
+  spawnParticles(en.x, en.y, en.color, 10, 6);
+  registerKill(en.x, en.y, en.reward, 'kinetic'); // simplified; could pass last bullet type
+  enemiesKilled++;
+  enemies.splice(idx, 1);
+}
+
+function updateBoss() {
+  // Movement
+  boss.y += boss.speed;
+  boss.x += boss.lateralSpeed * boss.dir;
+  if (boss.x < 60 || boss.x > W-60) boss.dir *= -1;
+
+  // Phase 2 at half health
+  if (!boss.phase2 && boss.hp < boss.maxHp * 0.5) {
+    boss.phase2 = true;
+    boss.speed *= 1.4;
+    boss.lateralSpeed *= 1.6;
+    spawnParticles(boss.x, boss.y, '#ff2244', 30, 8);
+    spawnFloater(boss.x, boss.y - 50, 'PHASE 2!', '#ff2244');
+    // Minion spawns
+    for (let i = 0; i < 3; i++) {
+      const def = ENEMY_TYPES[0];
+      spawnEnemy({ ...def, x: boss.x + (i-1)*80, delay:0 });
+    }
+  }
+
+  // Burn
+  if (boss.burnTimer > 0) { boss.burnTimer--; boss.hp -= boss.burnDmg; }
+  if (boss.slowTimer > 0) boss.slowTimer--;
+
+  // Update HP bar
+  const pct = Math.max(0, boss.hp / boss.maxHp * 100);
+  document.getElementById('bossHpFill').style.width = pct + '%';
+
+  // Boss reaches base
+  if (boss.y > H - 275) {
+    shields -= 30;
+    boss = null;
+    document.getElementById('bossHpBar').style.display = 'none';
+    spawnParticles(W/2, H-275, '#ff2244', 30, 8);
+    if (shields <= 0) gameOver();
+    return;
+  }
+
+  if (boss.hp <= 0) {
+    killBoss();
+  }
+}
+
+function killBoss() {
+  spawnParticles(boss.x, boss.y, '#ff2244', 50, 10);
+  spawnParticles(boss.x, boss.y, '#ff6600', 30, 8);
+  const reward = boss.reward;
+  credits += reward;
+  gainPilotXP(30);
+  spawnFloater(boss.x, boss.y - 60, `BOSS DOWN! +$${reward}`, '#ff2244');
+  boss = null;
+  document.getElementById('bossHpBar').style.display = 'none';
+
+  // Boss reward: extra hangar slot unlock notification
+  showBossReward();
+  enemiesThisWave = 0; // trigger wave complete next frame
+  enemiesSpawned = 0;
+}
+
+function showBossReward() {
+  // Permanent boss kill credit reward
+  meta.highScore = Math.max(meta.highScore, wave);
+  saveMeta();
+}
+
+function spawnEnemy(def) {
+  const speed = (def.speedMult * (0.8 + wave * 0.08)) || 1;
+  enemies.push({
+    ...def,
+    x: def.x || (60 + Math.random() * (W - 120)),
+    y: def.y || -20,
+    hp: (def.hpMult * (3 + wave * 1.2)),
+    maxHp: (def.hpMult * (3 + wave * 1.2)),
+    speed,
+    burnTimer: 0, burnDmg: 0,
+    slowTimer: 0, slowAmt: 0,
+    phase: Math.random() * Math.PI * 2,
+    driftX: 0,
+  });
+}
+
+function updateParticles() {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.92; p.vy *= 0.92;
+    p.life -= 0.025;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function updateFloaters() {
+  for (let i = floaters.length-1; i >= 0; i--) {
+    const f = floaters[i];
+    f.y += f.vy;
+    f.life -= 0.018;
+    if (f.life <= 0) floaters.splice(i, 1);
+  }
+}
+
+// ═══════════════════════════════════════════
+// DRAW
+// ═══════════════════════════════════════════
+function draw() {
+  ctx.fillStyle = '#030610';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(0,20,60,0.6)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H - 270; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = 'rgba(0,245,255,0.2)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([8, 8]);
+  ctx.beginPath(); ctx.moveTo(0, H-270); ctx.lineTo(W, H-270); ctx.stroke();
+  ctx.setLineDash([]);
+
+  enemies.forEach(en => drawEnemy(en));
+  if (boss) drawBoss();
+
+  bullets.forEach(b => {
+    const col = TYPES[b.type]?.color || '#fff';
+    ctx.shadowBlur = 8; ctx.shadowColor = col;
+    ctx.fillStyle = col;
+    ctx.fillRect(b.x - 2, b.y - 5, 4, 10);
+    ctx.shadowBlur = 0;
+  });
+
+  if (beamActive && !overheated && !dragging && phase === 'combat') {
+    const beamColor = '#ff00cc';
+    const bw = 3 + (meta.turretSkills.energy['e1'] ? 2 : 0);
+    ctx.shadowBlur = 20; ctx.shadowColor = beamColor;
+    ctx.strokeStyle = beamColor; ctx.lineWidth = bw;
+    ctx.beginPath(); ctx.moveTo(W/2, H-270); ctx.lineTo(beamX, beamY); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(W/2, H-270); ctx.lineTo(beamX, beamY); ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  const railSlots = getRailSlots();
+  for (let i = 0; i < railSlots; i++) {
+    const p = getRailPos(i);
+    const slot = rails[i];
+    drawSlotBox(p.x, p.y, 65, 65, slot ? TYPES[slot.type].color : 'rgba(0,245,255,0.3)', sellMode && slot);
+    if (slot) drawTurret(p.x+32, p.y+32, slot, true);
+  }
+
+  const hangarSlots = getHangarSlots();
+  for (let i = 0; i < hangarSlots; i++) {
+    const p = getSlotPos(i);
+    const slot = hangar[i];
+    drawSlotBox(p.x, p.y, 50, 50, slot ? TYPES[slot.type].color : 'rgba(0,245,255,0.1)', sellMode && slot);
+    if (slot) drawTurret(p.x+25, p.y+25, slot, false);
+  }
+
+  particles.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life;
+    ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+  });
+  ctx.globalAlpha = 1;
+
+  floaters.forEach(f => {
+    ctx.globalAlpha = Math.max(0, f.life);
+    ctx.fillStyle = f.color;
+    ctx.font = 'bold 13px "Share Tech Mono"';
+    ctx.textAlign = 'center';
+    ctx.fillText(f.text, f.x, f.y);
+  });
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+
+  if (dragging) drawTurret(mouseX, mouseY, dragging, false);
+
+  const bm = document.getElementById('beamMode');
+  if (phase === 'combat' && !beamActive && !dragging) {
+    bm.style.opacity = '0.5';
+    bm.style.color = overheated ? 'var(--red)' : 'var(--magenta)';
+    bm.textContent = overheated ? 'BEAM OVERHEATED — COOLING' : 'HOLD TO FIRE BEAM';
+  } else {
+    bm.style.opacity = '0';
+  }
+}
+
+function drawSlotBox(x, y, w, h, color, highlight) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = highlight ? 2 : 1;
+  if (highlight) {
+    ctx.shadowBlur = 12; ctx.shadowColor = 'var(--red)';
+    ctx.strokeStyle = 'var(--red)';
+  }
+  ctx.strokeRect(x, y, w, h);
+  ctx.shadowBlur = 0;
+}
+
+function drawEnemy(en) {
+  const flash = en.burnTimer > 0 && frameCount % 6 < 3;
+  const col = flash ? '#ff8800' : en.color;
+  ctx.shadowBlur = 8; ctx.shadowColor = col;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 2;
+
+  const x = en.x, y = en.y;
+  ctx.beginPath();
+  if (en.shape === 'rect') {
+    ctx.strokeRect(x-10, y-10, 20, 20);
+  } else if (en.shape === 'diamond') {
+    ctx.moveTo(x, y-14); ctx.lineTo(x+14, y); ctx.lineTo(x, y+14); ctx.lineTo(x-14, y); ctx.closePath();
+    ctx.stroke();
+  } else if (en.shape === 'triangle') {
+    ctx.moveTo(x, y-14); ctx.lineTo(x+14, y+10); ctx.lineTo(x-14, y+10); ctx.closePath();
+    ctx.stroke();
+  } else if (en.shape === 'circle') {
+    ctx.arc(x, y, 10, 0, Math.PI*2); ctx.stroke();
+  } else if (en.shape === 'star') {
+    for (let s = 0; s < 5; s++) {
+      const a = (s/5)*Math.PI*2 - Math.PI/2;
+      const a2 = a + Math.PI/5;
+      ctx.moveTo(x + Math.cos(a)*14, y + Math.sin(a)*14);
+      ctx.lineTo(x + Math.cos(a2)*6, y + Math.sin(a2)*6);
+    }
+    ctx.stroke();
+  }
+
+  // Health bar
+  const pct = en.hp / en.maxHp;
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillRect(x-12, y-20, 24, 3);
+  ctx.fillStyle = pct > 0.5 ? '#00ff88' : pct > 0.25 ? '#ffe600' : '#ff2244';
+  ctx.fillRect(x-12, y-20, 24*pct, 3);
+
+  // Slow indicator
+  if (en.slowTimer > 0) {
+    ctx.fillStyle = 'rgba(0,245,255,0.3)';
+    ctx.fillRect(x-10, y-10, 20, 20);
+  }
+
+  ctx.shadowBlur = 0;
+}
+
+function drawBoss() {
+  const b = boss;
+  const pulse = Math.sin(frameCount * 0.1) * 3;
+  const col = b.phase2 ? '#ff6600' : '#ff2244';
+  ctx.shadowBlur = 20; ctx.shadowColor = col;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 3;
+
+  // Boss shape: hexagon
+  ctx.beginPath();
+  for (let s = 0; s < 6; s++) {
+    const a = (s/6)*Math.PI*2;
+    const r = b.size + pulse;
+    if (s === 0) ctx.moveTo(b.x + Math.cos(a)*r, b.y + Math.sin(a)*r);
+    else ctx.lineTo(b.x + Math.cos(a)*r, b.y + Math.sin(a)*r);
+  }
+  ctx.closePath(); ctx.stroke();
+
+  // Inner ring
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, 20 + pulse*0.5, 0, Math.PI*2);
+  ctx.stroke();
+
+  ctx.fillStyle = col;
+  ctx.font = 'bold 10px "Share Tech Mono"';
+  ctx.textAlign = 'center';
+  ctx.fillText('BOSS', b.x, b.y + 4);
+  ctx.textAlign = 'left';
+
+  ctx.shadowBlur = 0;
+}
+
+function drawTurret(x, y, slot, large) {
+  const size = large ? 18 : 13;
+  const col = TYPES[slot.type]?.color || '#fff';
+  ctx.shadowBlur = 10; ctx.shadowColor = col;
+  ctx.strokeStyle = col;
+  ctx.lineWidth = 2;
+
+  ctx.beginPath();
+  if (slot.level === 1) {
+    ctx.arc(x, y, size, 0, Math.PI*2);
+  } else if (slot.level === 2) {
+    ctx.strokeRect(x-size, y-size, size*2, size*2);
+  } else if (slot.level === 3) {
+    ctx.moveTo(x, y-size);
+    ctx.lineTo(x+size, y+size*0.7);
+    ctx.lineTo(x-size, y+size*0.7);
+    ctx.closePath();
+  } else if (slot.level >= 4) {
+    // Star (overclocked)
+    for (let s = 0; s < 6; s++) {
+      const a = (s/6)*Math.PI*2 - Math.PI/2;
+      if (s===0) ctx.moveTo(x + Math.cos(a)*size, y + Math.sin(a)*size);
+      else ctx.lineTo(x + Math.cos(a)*size, y + Math.sin(a)*size);
+    }
+    ctx.closePath();
+    // Pulse
+    ctx.shadowBlur = 20 + Math.sin(frameCount*0.2)*5;
+  }
+  ctx.stroke();
+
+  // Level label
+  ctx.fillStyle = col;
+  ctx.font = `bold ${large ? 11 : 9}px "Orbitron"`;
+  ctx.textAlign = 'center';
+  ctx.fillText(slot.level, x, y + 4);
+
+  // Type indicator dot
+  ctx.beginPath();
+  ctx.arc(x, y - size - 4, 2, 0, Math.PI*2);
+  ctx.fillStyle = col;
+  ctx.fill();
+
+  ctx.textAlign = 'left';
+  ctx.shadowBlur = 0;
+}
+
+// ═══════════════════════════════════════════
+// GAME OVER
+// ═══════════════════════════════════════════
+function gameOver() {
+  meta.highScore = Math.max(meta.highScore, wave);
+  gainPilotXP(wave * 5);
+  saveMeta();
+
+  const el = document.getElementById('overlay');
+  document.getElementById('overlayTitle').textContent = 'DESTROYED';
+  document.getElementById('overlayTitle').style.color = 'var(--red)';
+  document.getElementById('overlaySub').textContent = 'YOUR BASE HAS FALLEN';
+  document.getElementById('overlayStat').textContent = `WAVE ${wave} | HIGH SCORE: WAVE ${meta.highScore} | PILOT RANK: ${meta.pilotRank}`;
+  document.getElementById('overlayBtn').textContent = 'DEPLOY AGAIN';
+  document.getElementById('overlayBtn').onclick = restartGame;
+  el.classList.add('active');
+}
+
+function restartGame() {
+  document.getElementById('overlay').classList.remove('active');
+  initGame();
+}
+
+// ═══════════════════════════════════════════
+// SKILL OVERLAY
+// ═══════════════════════════════════════════
+let currentSkillTab = 'kinetic';
+let skillPaused = false;
+
+function openSkills() {
+  skillPaused = true;
+  document.getElementById('skillOverlay').classList.add('active');
+  renderSkillTab(currentSkillTab);
+}
+
+function closeSkills() {
+  skillPaused = false;
+  document.getElementById('skillOverlay').classList.remove('active');
+}
+
+function switchTab(tab) {
+  currentSkillTab = tab;
+  document.querySelectorAll('.skill-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.skill-tab.${tab}`).classList.add('active');
+  renderSkillTab(tab);
+}
+
+function renderSkillTab(tab) {
+  const grid = document.getElementById('skillGrid');
+  const xpBar = document.getElementById('xpBarContainer');
+  const xpLabel = document.getElementById('xpLabel');
+  const xpFill = document.getElementById('xpFill');
+  grid.innerHTML = '';
+
+  let skills, unlockedMap, xpCurrent, xpNext, rankLabel, color;
+
+  if (tab === 'pilot') {
+    skills = PILOT_SKILLS;
+    unlockedMap = meta.pilotSkills;
+    xpCurrent = meta.pilotXP;
+    xpNext = getNextPilotXP();
+    rankLabel = `PILOT RANK ${meta.pilotRank} — ${xpCurrent} / ${xpNext} XP`;
+    color = '#ffe600';
+  } else {
+    skills = TURRET_SKILLS[tab];
+    unlockedMap = meta.turretSkills[tab];
+    xpCurrent = meta.turretXP[tab];
+    xpNext = getNextTurretXP(tab);
+    rankLabel = `${tab.toUpperCase()} RANK ${meta.turretRank[tab]} — ${xpCurrent} / ${xpNext} XP`;
+    color = TYPES[tab].color;
+  }
+
+  xpLabel.textContent = rankLabel;
+  xpFill.style.width = Math.min(100, (xpCurrent / xpNext) * 100) + '%';
+  xpFill.style.background = color;
+  xpFill.style.boxShadow = `0 0 8px ${color}`;
+
+  skills.forEach(skill => {
+    const isUnlocked = unlockedMap[skill.id];
+    const reqMet = !skill.req || unlockedMap[skill.req];
+    const canAfford = tab === 'pilot'
+      ? meta.pilotXP >= skill.cost
+      : meta.turretXP[tab] >= skill.cost;
+    const available = !isUnlocked && reqMet;
+
+    const node = document.createElement('div');
+    node.className = `skill-node ${isUnlocked ? 'unlocked' : available ? 'available' : 'locked'}`;
+
+    node.innerHTML = `
+      <div class="skill-node-name" style="color:${isUnlocked ? '#00ff88' : color}">${skill.name}</div>
+      <div class="skill-node-desc">${skill.desc}</div>
+      <div class="skill-node-cost">${isUnlocked ? '✓ UNLOCKED' : `${skill.cost} XP`}</div>
+    `;
+
+    if (available && canAfford) {
+      node.onclick = () => unlockSkill(tab, skill);
+      node.style.cursor = 'pointer';
     }
 
+    grid.appendChild(node);
+  });
+}
+
+function unlockSkill(tab, skill) {
+  if (tab === 'pilot') {
+    if (meta.pilotXP < skill.cost) return;
+    meta.pilotXP -= skill.cost;
+    meta.pilotSkills[skill.id] = true;
+  } else {
+    if (meta.turretXP[tab] < skill.cost) return;
+    meta.turretXP[tab] -= skill.cost;
+    meta.turretSkills[tab][skill.id] = true;
+  }
+  saveMeta();
+  renderSkillTab(tab);
+
+  // Apply immediate effects
+  if (skill.effect === 'railSlot') rails = [...rails, null];
+  if (skill.effect === 'hangarSlot') hangar = [...hangar, null, null];
+}
+
+// ── MAIN LOOP ──
+function gameLoop() {
+  if (!skillPaused) {
+    // Heat cooldown
+    if (!beamActive) {
+      const coolRate = 0.5 * (1 + (meta.turretSkills.energy['e7'] ? 0.25 : 0) + (meta.pilotSkills['pr3'] ? 0.3 : 0));
+      heat = Math.max(0, heat - coolRate);
+      if (heat === 0) overheated = false;
+    }
+    update();
     draw();
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+// ── BOOT ──
+initGame();
+requestAnimationFrame(gameLoop);
 </script>
 </body>
-  </html>
-  
+</html>
