@@ -35,7 +35,6 @@ window.addEventListener('resize', () => {
   screen.H = canvas.height = window.innerHeight;
   reinitStars();
 });
-});
 
 // ── Main loop ─────────────────────────────────────────────────────────────────
 function gameLoop() {
