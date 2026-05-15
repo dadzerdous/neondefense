@@ -3,7 +3,7 @@
 
 import { loadMeta, saveMeta, gainPilotXP, hasPilotSkill, hasTurretSkill, getTurretStat, trackQuest } from './meta.js';
 import { run, combat, board, input, screen, session, resetRun } from './state.js';
-import { initDraw, draw, reinitStars } from './draw.js';
+import { initDraw, draw, reinitStars, resetChainTimerCache } from './draw.js';
 import { initInput } from './input.js';
 import { updateHUD, updatePrepHUD, hidePrepTimer, updateBossHP, hideBossHP, showWaveAnnounce, showGameOver, hideGameOver, openSkillDrawer, closeSkillDrawer, switchTab, renderSkillTab, splashTab, checkQuestToast, showQuestToast } from './ui.js';
 import { buyTurret, getRailCount, getHangarCount } from './turrets.js';
@@ -143,7 +143,10 @@ function updateIonStorm() {
 // ── Chain decay ───────────────────────────────────────────────────────────────
 function decayChain() {
   const timeout = run.chainTimeout * (hasPilotSkill(meta, 'pr4') ? 1.5 : 1);
-  if (Date.now() - run.lastKillTime > timeout + 200) run.chainCount = 1;
+  if (Date.now() - run.lastKillTime > timeout + 200) {
+    if (run.chainCount > 1) resetChainTimerCache();
+    run.chainCount = 1;
+  }
 }
 
 // ── Event handlers ────────────────────────────────────────────────────────────

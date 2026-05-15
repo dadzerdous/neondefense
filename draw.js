@@ -53,6 +53,7 @@ export function draw(meta) {
   drawFloaters();
   if (input.dragging) drawTurret(input.mouseX, input.mouseY, input.dragging, false);
   drawHoverTooltip();
+  drawChainTimer();
 }
 
 // ── Starfield ─────────────────────────────────────────────────────────────────
@@ -492,7 +493,59 @@ function drawFloaters() {
   ctx.textAlign = 'left';
 }
 
-// ── Hover tooltip ─────────────────────────────────────────────────────────────
+// ── Chain timer arc ───────────────────────────────────────────────────────────
+// Drawn on canvas over the HUD chain block.
+// Position is read from the DOM element once and cached.
+let chainBlockPos = null;
+export function resetChainTimerCache() { chainBlockPos = null; }
+
+function drawChainTimer() {
+  if (run.chainCount <= 1) { chainBlockPos = null; return; }
+
+  // Cache position of chain HUD block
+  if (!chainBlockPos) {
+    const el = document.getElementById('chainVal');
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    chainBlockPos = { x: r.left + r.width/2, y: r.top + r.height/2 + 8 };
+  }
+
+  const timeout = run.chainTimeout * 1; // main.js applies pr4 multiplier to decay
+  const elapsed = Date.now() - run.lastKillTime;
+  const frac    = Math.max(0, 1 - elapsed / timeout);
+  if (frac <= 0) { chainBlockPos = null; return; }
+
+  const { x, y } = chainBlockPos;
+  const radius   = 18;
+  const startAngle = -Math.PI / 2;
+  const endAngle   = startAngle + Math.PI * 2 * frac;
+
+  // Color shifts red as time runs out
+  const r255 = Math.round(255 * (1 - frac));
+  const g255 = Math.round(255 * frac * 0.8);
+  const arcColor = `rgb(${r255},${g255},255)`;
+
+  ctx.save();
+
+  // Track bg
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth   = 3;
+  ctx.stroke();
+
+  // Timer arc
+  ctx.beginPath();
+  ctx.arc(x, y, radius, startAngle, endAngle);
+  ctx.strokeStyle  = arcColor;
+  ctx.lineWidth    = 3;
+  ctx.lineCap      = 'round';
+  ctx.shadowBlur   = 8;
+  ctx.shadowColor  = arcColor;
+  ctx.stroke();
+
+  ctx.restore();
+}
 function drawHoverTooltip() {
   if (!input.hoveredSlot || input.dragging) return;
   const { slot, cx, cy } = input.hoveredSlot;
