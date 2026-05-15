@@ -102,25 +102,126 @@ export const TURRET_STAT_DEFS = {
 };
 
 // ── Quests ────────────────────────────────────────────────────────────────────
-export const QUEST_DEFS = {
+// Each quest is a chain of tiers. Completing a tier unlocks the next,
+// which is harder but gives a bigger boost to the same reward.
+// tier 0 = branch unlock, tier 1+ = passive stat boosts on top.
+
+export const QUEST_CHAINS = {
   kinetic: [
-    { id:'qk_range',  name:'Long Shot',     desc:'Kill 10 enemies from max range',   target:10,  statKey:'longshots',   reward:'range',  rewardLabel:'Range branch'  },
-    { id:'qk_rate',   name:'Chain Killer',  desc:'Get a x5 kill chain',              target:1,   statKey:'chain5',      reward:'rate',   rewardLabel:'Rate branch'   },
-    { id:'qk_pierce', name:'Armory Built',  desc:'Buy 30 kinetic turrets total',     target:30,  statKey:'bought',      reward:'pierce', rewardLabel:'Pierce branch' },
+    {
+      id: 'qk_range', name: 'Long Shot', statKey: 'longshots',
+      reward: 'range', rewardLabel: 'Range branch',
+      tiers: [
+        { target:10,   desc:'Kill 10 enemies from max range',    bonus:null,                 bonusDesc:'Unlocks Range branch'         },
+        { target:50,   desc:'Kill 50 enemies from max range',    bonus:'range_dmg_1',        bonusDesc:'+10% damage at max range'     },
+        { target:200,  desc:'Kill 200 enemies from max range',   bonus:'range_dmg_2',        bonusDesc:'+20% damage at max range'     },
+        { target:600,  desc:'Kill 600 enemies from max range',   bonus:'range_dmg_3',        bonusDesc:'+15% range on all turrets'    },
+      ],
+    },
+    {
+      id: 'qk_rate', name: 'Chain Killer', statKey: 'chain5',
+      reward: 'rate', rewardLabel: 'Rate branch',
+      tiers: [
+        { target:1,    desc:'Reach a x5 kill chain',             bonus:null,                 bonusDesc:'Unlocks Rate branch'          },
+        { target:5,    desc:'Reach x5 chain 5 times',            bonus:'chain_time_1',       bonusDesc:'+0.3s chain window'           },
+        { target:20,   desc:'Reach x5 chain 20 times',           bonus:'chain_credit_1',     bonusDesc:'+$1 per chain kill'           },
+        { target:50,   desc:'Reach x5 chain 50 times',           bonus:'chain_mult_1',       bonusDesc:'Chain cap raised to x10'      },
+      ],
+    },
+    {
+      id: 'qk_pierce', name: 'Armory Built', statKey: 'bought',
+      reward: 'pierce', rewardLabel: 'Pierce branch',
+      tiers: [
+        { target:30,   desc:'Buy 30 kinetic turrets',            bonus:null,                 bonusDesc:'Unlocks Pierce branch'        },
+        { target:100,  desc:'Buy 100 kinetic turrets',           bonus:'kinetic_cost_1',     bonusDesc:'Kinetic turrets cost -$2'     },
+        { target:300,  desc:'Buy 300 kinetic turrets',           bonus:'kinetic_dmg_1',      bonusDesc:'+0.2 flat kinetic damage'     },
+        { target:750,  desc:'Buy 750 kinetic turrets',           bonus:'kinetic_pierce_1',   bonusDesc:'All kinetic pierce by default'},
+      ],
+    },
   ],
   energy: [
-    { id:'qe_slow',   name:'Crowd Control', desc:'Slow 50 enemies in one run',       target:50,  statKey:'slowed',      reward:'slow',   rewardLabel:'Slow branch'   },
-    { id:'qe_heat',   name:'Heat Seeker',   desc:'Overheat beam 10 times',           target:10,  statKey:'overheats',   reward:'heat',   rewardLabel:'Heat branch'   },
+    {
+      id: 'qe_slow', name: 'Crowd Control', statKey: 'slowed',
+      reward: 'slow', rewardLabel: 'Slow branch',
+      tiers: [
+        { target:50,   desc:'Slow 50 enemies in one run',        bonus:null,                 bonusDesc:'Unlocks Slow branch'          },
+        { target:200,  desc:'Slow 200 enemies total',            bonus:'slow_strength_1',    bonusDesc:'Slow effect +5%'              },
+        { target:750,  desc:'Slow 750 enemies total',            bonus:'slow_strength_2',    bonusDesc:'Slow effect +10% more'        },
+        { target:2000, desc:'Slow 2000 enemies total',           bonus:'slow_aoe_1',         bonusDesc:'Slow splashes to nearby enemy'},
+      ],
+    },
+    {
+      id: 'qe_heat', name: 'Heat Seeker', statKey: 'overheats',
+      reward: 'heat', rewardLabel: 'Heat branch',
+      tiers: [
+        { target:10,   desc:'Overheat the beam 10 times',        bonus:null,                 bonusDesc:'Unlocks Heat branch'          },
+        { target:40,   desc:'Overheat 40 times total',           bonus:'beam_dmg_1',         bonusDesc:'+15% beam damage'             },
+        { target:120,  desc:'Overheat 120 times total',          bonus:'cooldown_1',         bonusDesc:'Beam cools 20% faster'        },
+        { target:300,  desc:'Overheat 300 times total',          bonus:'overheat_wave_1',    bonusDesc:'Overheat releases energy wave'},
+      ],
+    },
   ],
   plasma: [
-    { id:'qp_aoe',    name:'Splash Damage', desc:'Hit 3+ enemies with one shot x20', target:20, statKey:'splashkills', reward:'aoe',    rewardLabel:'AOE branch'    },
-    { id:'qp_burn',   name:'Pyromaniac',    desc:'Deal 500 burn damage total',       target:500, statKey:'burndmg',    reward:'burn',   rewardLabel:'Burn branch'   },
+    {
+      id: 'qp_aoe', name: 'Splash Damage', statKey: 'splashkills',
+      reward: 'aoe', rewardLabel: 'AOE branch',
+      tiers: [
+        { target:20,   desc:'Hit 3+ enemies with one shot x20',  bonus:null,                 bonusDesc:'Unlocks AOE branch'           },
+        { target:75,   desc:'Hit 3+ enemies with one shot x75',  bonus:'aoe_radius_1',       bonusDesc:'+12px AOE radius'             },
+        { target:200,  desc:'Hit 3+ enemies 200 times',          bonus:'aoe_dmg_1',          bonusDesc:'+15% AOE splash damage'       },
+        { target:500,  desc:'Hit 3+ enemies 500 times',          bonus:'aoe_chain_1',        bonusDesc:'AOE can chain once more'      },
+      ],
+    },
+    {
+      id: 'qp_burn', name: 'Pyromaniac', statKey: 'burndmg',
+      reward: 'burn', rewardLabel: 'Burn branch',
+      tiers: [
+        { target:500,  desc:'Deal 500 burn damage total',        bonus:null,                 bonusDesc:'Unlocks Burn branch'          },
+        { target:2000, desc:'Deal 2000 burn damage total',       bonus:'burn_dmg_1',         bonusDesc:'+25% burn damage'             },
+        { target:7500, desc:'Deal 7500 burn damage total',       bonus:'burn_duration_1',    bonusDesc:'+1s burn duration'            },
+        { target:20000,desc:'Deal 20000 burn damage total',      bonus:'burn_spread_1',      bonusDesc:'Burn spreads on kill'         },
+      ],
+    },
   ],
   pilot: [
-    { id:'qpr_econ',  name:'Entrepreneur',  desc:'Earn $2000 credits across runs',   target:2000,statKey:'credits',     reward:'econ',   rewardLabel:'Economy branch'},
-    { id:'qpr_def',   name:'Shield Wall',   desc:'Complete 3 waves at full shields', target:3,   statKey:'cleanwaves', reward:'defense',rewardLabel:'Defense branch'},
+    {
+      id: 'qpr_econ', name: 'Entrepreneur', statKey: 'credits',
+      reward: 'econ', rewardLabel: 'Economy branch',
+      tiers: [
+        { target:2000,  desc:'Earn $2000 credits across runs',   bonus:null,                 bonusDesc:'Unlocks Economy branch'       },
+        { target:8000,  desc:'Earn $8000 credits total',         bonus:'start_credits_1',    bonusDesc:'Start each run with +$10'     },
+        { target:25000, desc:'Earn $25000 credits total',        bonus:'kill_bonus_1',       bonusDesc:'+$1 per kill always'          },
+        { target:75000, desc:'Earn $75000 credits total',        bonus:'wave_bonus_1',       bonusDesc:'+25% wave clear bonus'        },
+      ],
+    },
+    {
+      id: 'qpr_def', name: 'Shield Wall', statKey: 'cleanwaves',
+      reward: 'defense', rewardLabel: 'Defense branch',
+      tiers: [
+        { target:3,    desc:'Complete 3 waves at full shields',  bonus:null,                 bonusDesc:'Unlocks Defense branch'       },
+        { target:15,   desc:'Complete 15 waves at full shields', bonus:'shield_cap_1',       bonusDesc:'+10 max shields'              },
+        { target:50,   desc:'Complete 50 waves at full shields', bonus:'shield_regen_1',     bonusDesc:'Regen 1 shield per clean wave'},
+        { target:150,  desc:'Complete 150 clean waves total',    bonus:'turret_armor_1',     bonusDesc:'Turrets take -20% damage'     },
+      ],
+    },
   ],
 };
+
+// Flat QUEST_DEFS for backward compat — derived from chains tier 0
+export const QUEST_DEFS = Object.fromEntries(
+  Object.entries(QUEST_CHAINS).map(([type, chains]) => [
+    type,
+    chains.map(c => ({
+      id:          c.id,
+      name:        c.name,
+      statKey:     c.statKey,
+      reward:      c.reward,
+      rewardLabel: c.rewardLabel,
+      target:      c.tiers[0].target,
+      desc:        c.tiers[0].desc,
+    })),
+  ])
+);
 
 // ── XP thresholds ─────────────────────────────────────────────────────────────
 export const PILOT_XP_PER_RANK  = [0,300,600,1000,1500,2200,3000,4000,5500,7500];
