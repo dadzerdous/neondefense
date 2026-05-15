@@ -202,6 +202,9 @@ export function updateBullets(meta, onEnemyKill) {
       const dmg = calcDamage(meta, b, en);
       en.hp -= dmg;
 
+      // Crit visual feedback
+      if (b.crit) spawnFloater(en.x, en.y - 16, 'CRIT!', '#ffe600');
+
       // Slow on hit (energy)
       if (b.type === 'energy' && hasTurretSkill(meta, 'energy', 'e2')) {
         if (!en.slowTimer) {

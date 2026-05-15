@@ -21,9 +21,9 @@ function defaultMeta() {
     turretStatPoints: { kinetic:0, energy:0, plasma:0 },
 
     turretStats: {
-      kinetic: { dmg:0, fireRate:0,  penetration:0 },
-      energy:  { dmg:0, heatRed:0,   resonance:0   },
-      plasma:  { dmg:0, aoe:0,       volatility:0  },
+      kinetic: { dmg:0, fireRate:0,  crit:0, penetration:0 },
+      energy:  { dmg:0, heatRed:0,   crit:0, resonance:0   },
+      plasma:  { dmg:0, aoe:0,       crit:0, volatility:0  },
     },
 
     pilotSkills:  {},
@@ -214,12 +214,26 @@ export function trackQuest(meta, type, statKey, amount) {
     if (qd.statKey !== statKey) return;
     if (meta.quests[qd.id] === 'done') return;
 
-    const key = 'qprog_' + qd.id;
-    meta[key] = (meta[key] || 0) + amount;
+    const key     = 'qprog_' + qd.id;
+    const before  = meta[key] || 0;
+    meta[key]     = before + amount;
+
+    // Include progress info for toast throttling in caller
+    events.push({
+      type:      'questProgress',
+      questType: type,
+      statKey,
+      questId:   qd.id,
+      questName: qd.name,
+      current:   meta[key],
+      target:    qd.target,
+      color:     qd.color,
+      done:      meta[key] >= qd.target,
+    });
 
     if (meta[key] >= qd.target) {
       meta.quests[qd.id] = 'done';
-      events.push({ type:'questComplete', questId: qd.id, questName: qd.name, reward: qd.reward });
+      events.push({ type:'questComplete', questId: qd.id, questName: qd.name, reward: qd.reward, questType: type });
     }
   });
 

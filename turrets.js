@@ -122,14 +122,47 @@ export function returnToHangar(item) {
   condenseHangar();
 }
 
+// ── Damage variance helpers ───────────────────────────────────────────────────
+// Each shot rolls between min and max damage — like a d6 but scaled.
+export function getDamageRange(meta, slot) {
+  const rank     = meta.turretRank[slot.type] || 1;
+  const statBonus= getTurretStat(meta, slot.type, 'dmg') * 0.15;
+  const base     = slot.level * (1 + (rank - 1) * 0.15) + statBonus;
+  // Variance: ±25% around base, floor rises with rank
+  const variance = 0.25;
+  const floor    = base * (1 - variance + (rank - 1) * 0.04); // floor rises with rank
+  const ceil     = base * (1 + variance);
+  return { min: Math.max(0.5, floor), max: ceil, base };
+}
+
+export function rollDamage(meta, slot) {
+  const { min, max } = getDamageRange(meta, slot);
+  return min + Math.random() * (max - min);
+}
+
+export function getCritChance(meta, type) {
+  // Base 3% for all, +5% per crit stat level, kinetic k9 skill adds 15%
+  const statCrit  = getTurretStat(meta, type, 'crit') * 0.05;
+  const skillCrit = type === 'kinetic' && hasTurretSkill(meta, 'kinetic', 'k9') ? 0.15 : 0;
+  return 0.03 + statCrit + skillCrit;
+}
+
 // ── Damage calculation ────────────────────────────────────────────────────────
 export function calcDamage(meta, bullet, enemy) {
-  let dmg = bullet.power + getTurretStat(meta, bullet.type, 'dmg') * 0.15;
+  // Roll damage variance
+  let dmg = bullet.roll ?? bullet.power; // use pre-rolled value if available
+
+  // Elemental matchup
   if (enemy.weakTo === bullet.type) dmg *= 1.6;
-  if (enemy.armor === bullet.type && !hasTurretSkill(meta, 'kinetic', 'k6')) dmg *= 0.5;
-  if (bullet.type === 'energy'  && hasTurretSkill(meta, 'energy', 'e8')) dmg *= 1.3;
-  if (bullet.type === 'plasma'  && hasTurretSkill(meta, 'plasma', 'p8')) dmg *= (1 + 0.25 * (run.wave / 5));
-  if (bullet.type === 'kinetic' && hasTurretSkill(meta, 'kinetic', 'k9') && Math.random() < 0.15) dmg *= 2; // crit
+  if (enemy.armor  === bullet.type && !hasTurretSkill(meta, 'kinetic', 'k6')) dmg *= 0.5;
+
+  // Type-specific skill bonuses
+  if (bullet.type === 'energy'  && hasTurretSkill(meta, 'energy',  'e8')) dmg *= 1.3;
+  if (bullet.type === 'plasma'  && hasTurretSkill(meta, 'plasma',  'p8')) dmg *= (1 + 0.25 * (run.wave / 5));
+
+  // Universal crit — rolls at fire time (stored on bullet so same roll applies to pierce/AOE)
+  if (bullet.crit) dmg *= 2;
+
   return dmg;
 }
 
@@ -145,16 +178,20 @@ export function getFireInterval(meta, slot) {
 // ── Fire a bullet ─────────────────────────────────────────────────────────────
 export function fireBullet(meta, x, y, angle, speed, slot) {
   const hasSpeedSkill = hasTurretSkill(meta, slot.type, slot.type[0]+'7');
-  const spd = speed * (1 + (hasSpeedSkill ? 0.5 : 0));
+  const spd    = speed * (1 + (hasSpeedSkill ? 0.5 : 0));
+  const roll   = rollDamage(meta, slot);
+  const isCrit = Math.random() < getCritChance(meta, slot.type);
   combat.bullets.push({
     x, y,
-    vx: Math.cos(angle) * spd,
-    vy: Math.sin(angle) * spd,
-    type:   slot.type,
-    power:  slot.level * (1 + (meta.turretRank[slot.type] - 1) * 0.15),
+    vx:    Math.cos(angle) * spd,
+    vy:    Math.sin(angle) * spd,
+    type:  slot.type,
+    power: roll,
+    roll,
+    crit:  isCrit,
     pierce: hasTurretSkill(meta, slot.type, slot.type[0]+'2') ? 1 : 0,
     life:   130,
-    fromRailIdx: slot.railIdx ?? -1, // for long-shot quest
+    fromRailIdx: slot.railIdx ?? -1,
   });
 }
 

@@ -6,15 +6,39 @@ import { run, combat, board, input, screen, TURRET_MAX_HP } from './state.js';
 import { getRailPos, getSlotPos, getTurretRange, getPlasmaAoeRadius, getPanelTop } from './turrets.js';
 
 let ctx;
+let stars = [];
+
 export function initDraw(canvas) {
   ctx = canvas.getContext('2d');
+  initStars();
 }
 
-// ── Main draw ─────────────────────────────────────────────────────────────────
+function initStars() {
+  stars = [];
+  const count = 180;
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x:       Math.random(),   // 0-1 normalized, scaled by screen.W
+      y:       Math.random(),   // 0-1 normalized, scaled by screen.H
+      r:       Math.random() * 1.4 + 0.3,
+      speed:   Math.random() * 0.00008 + 0.00002,
+      opacity: Math.random() * 0.6 + 0.15,
+      twinkle: Math.random() * Math.PI * 2,  // phase offset
+      twinkleSpeed: Math.random() * 0.04 + 0.01,
+      color:   Math.random() < 0.12 ? '#a0c8ff'  // occasional blue-white
+             : Math.random() < 0.08 ? '#ffd0a0'  // occasional warm
+             : '#ffffff',
+    });
+  }
+}
+
+export function reinitStars() { initStars(); }
 export function draw(meta) {
-  ctx.fillStyle = '#030610';
+  // Deep navy background instead of pure black
+  ctx.fillStyle = '#020816';
   ctx.fillRect(0, 0, screen.W, screen.H);
 
+  drawStars();
   drawGrid();
   drawRangeOverlays(meta);
   drawEnemies();
@@ -29,6 +53,45 @@ export function draw(meta) {
   drawFloaters();
   if (input.dragging) drawTurret(input.mouseX, input.mouseY, input.dragging, false);
   drawHoverTooltip();
+}
+
+// ── Starfield ─────────────────────────────────────────────────────────────────
+function drawStars() {
+  const panelTop = getPanelTop();
+  const t = combat.frameCount || 0;
+
+  stars.forEach(s => {
+    // Slow drift downward, wrap
+    s.y += s.speed;
+    if (s.y > 1) s.y = 0;
+
+    const px = s.x * screen.W;
+    const py = s.y * screen.H;
+    if (py > panelTop) return; // don't draw in panel area
+
+    // Twinkle: opacity pulses
+    const twinkle = Math.sin(t * s.twinkleSpeed + s.twinkle);
+    const alpha   = Math.max(0.05, s.opacity + twinkle * 0.25);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle   = s.color;
+    ctx.beginPath();
+    ctx.arc(px, py, s.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Occasional cross-sparkle on brighter stars
+    if (s.r > 1.4 && alpha > 0.6) {
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth   = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(px - s.r * 3, py); ctx.lineTo(px + s.r * 3, py);
+      ctx.moveTo(px, py - s.r * 3); ctx.lineTo(px, py + s.r * 3);
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
 }
 
 // ── Grid ──────────────────────────────────────────────────────────────────────

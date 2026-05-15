@@ -3,9 +3,9 @@
 
 import { loadMeta, saveMeta, gainPilotXP, hasPilotSkill, hasTurretSkill, getTurretStat, trackQuest } from './meta.js';
 import { run, combat, board, input, screen, session, resetRun } from './state.js';
-import { initDraw, draw } from './draw.js';
+import { initDraw, draw, reinitStars } from './draw.js';
 import { initInput } from './input.js';
-import { updateHUD, updatePrepHUD, hidePrepTimer, updateBossHP, hideBossHP, showWaveAnnounce, showGameOver, hideGameOver, openSkillDrawer, closeSkillDrawer, switchTab, renderSkillTab, splashTab } from './ui.js';
+import { updateHUD, updatePrepHUD, hidePrepTimer, updateBossHP, hideBossHP, showWaveAnnounce, showGameOver, hideGameOver, openSkillDrawer, closeSkillDrawer, switchTab, renderSkillTab, splashTab, checkQuestToast, showQuestToast } from './ui.js';
 import { buyTurret, getRailCount, getHangarCount } from './turrets.js';
 import { updateTurrets } from './turrets.js';
 import { updateEnemies, updateBullets, updateEnemyBullets, killEnemy } from './enemies.js';
@@ -33,6 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('resize', () => {
   screen.W = canvas.width  = window.innerWidth;
   screen.H = canvas.height = window.innerHeight;
+  reinitStars();
 });
 });
 
@@ -179,7 +180,19 @@ function onWaveClear(bonus) {
   }, 1500);
 }
 
-// ── Game flow ─────────────────────────────────────────────────────────────────
+// ── Quest event processing ────────────────────────────────────────────────────
+export function processQuestEvents(meta, events) {
+  if (!events?.length) return;
+  events.forEach(ev => {
+    if (ev.type === 'questProgress') {
+      checkQuestToast(meta, ev.questType, ev.statKey, ev.current);
+    }
+    if (ev.type === 'questComplete') {
+      showQuestToast(ev.questName + ' COMPLETE!', 100, ev.target, ev.target, '#00ff88');
+      spawnFloater(screen.W/2, screen.H/2 - 80, 'QUEST: ' + ev.questName + '!', '#ffe600');
+    }
+  });
+}
 function startGame() {
   document.getElementById('splash').style.display = 'none';
   session.gameStarted = true;

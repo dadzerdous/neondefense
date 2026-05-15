@@ -13,6 +13,83 @@ import {
   getStatCost, getQuestProgress, saveMeta,
 } from './meta.js';
 
+// ── Quest toast system ────────────────────────────────────────────────────────
+// Shows brief quest progress flashes in the top-right corner.
+// Throttled — only fires every 50 progress units to avoid spam.
+const toastQueue  = [];
+let   toastActive = false;
+const TOAST_INTERVAL = 50; // show toast every N progress units
+
+export function checkQuestToast(meta, type, statKey, newTotal) {
+  const defs = QUEST_DEFS[type] || [];
+  defs.forEach(qd => {
+    if (qd.statKey !== statKey) return;
+    if (meta.quests?.[qd.id] === 'done') return;
+    // Fire toast at every TOAST_INTERVAL multiple
+    if (Math.floor(newTotal / TOAST_INTERVAL) > Math.floor((newTotal - 1) / TOAST_INTERVAL)) {
+      const pct = Math.min(100, Math.round(newTotal / qd.target * 100));
+      showQuestToast(qd.name, pct, newTotal, qd.target, TYPES[type]?.color || '#ffe600');
+    }
+  });
+}
+
+export function showQuestToast(name, pct, current, target, color) {
+  toastQueue.push({ name, pct, current, target, color });
+  if (!toastActive) drainToastQueue();
+}
+
+function drainToastQueue() {
+  if (!toastQueue.length) { toastActive = false; return; }
+  toastActive = true;
+  const t = toastQueue.shift();
+  renderToast(t);
+  setTimeout(drainToastQueue, 3200);
+}
+
+function renderToast(t) {
+  let el = document.getElementById('questToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'questToast';
+    el.style.cssText = [
+      'position:fixed', 'top:70px', 'right:12px',
+      'width:200px', 'background:rgba(0,4,14,0.95)',
+      'border-radius:8px', 'padding:10px 12px',
+      'pointer-events:none', 'z-index:500',
+      'transition:opacity 0.4s, transform 0.4s',
+      'font-family:"Share Tech Mono",monospace',
+    ].join(';');
+    document.body.appendChild(el);
+  }
+
+  el.style.borderTop = '2px solid ' + t.color;
+  el.style.boxShadow = '0 0 16px ' + t.color + '44';
+  el.innerHTML = [
+    '<div style="font-size:8px;letter-spacing:2px;opacity:0.4;margin-bottom:3px;">QUEST PROGRESS</div>',
+    '<div style="font-size:11px;font-family:Orbitron,monospace;color:' + t.color + ';margin-bottom:6px;">' + t.name + '</div>',
+    '<div style="display:flex;align-items:center;gap:6px;">',
+      '<div style="flex:1;height:3px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;">',
+        '<div style="width:' + t.pct + '%;height:100%;background:' + t.color + ';border-radius:2px;transition:width 0.4s;"></div>',
+      '</div>',
+      '<span style="font-size:9px;color:rgba(255,255,255,0.4);">' + t.current + '/' + t.target + '</span>',
+    '</div>',
+  ].join('');
+
+  // Animate in
+  el.style.opacity = '0';
+  el.style.transform = 'translateX(20px)';
+  requestAnimationFrame(() => {
+    el.style.opacity = '1';
+    el.style.transform = 'translateX(0)';
+  });
+
+  // Fade out before next
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+  }, 2800);
+}
+
 // ── HUD ───────────────────────────────────────────────────────────────────────
 export function updateHUD(meta) {
   setText('waveVal',    run.wave);

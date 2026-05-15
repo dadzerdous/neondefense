@@ -82,19 +82,22 @@ export const BRANCH_SKILLS = {
 // ── Stat tweaks ───────────────────────────────────────────────────────────────
 export const TURRET_STAT_DEFS = {
   kinetic: [
-    { id:'dmg',         name:'Damage',       desc:'+0.15 dmg/level',          max:5, unique:false },
+    { id:'dmg',         name:'Damage',       desc:'+0.15 base dmg/level',     max:5, unique:false },
     { id:'fireRate',    name:'Fire Rate',     desc:'+8% rate/level',           max:5, unique:false },
-    { id:'penetration', name:'Penetration',   desc:'+12% pierce chance/level', max:5, unique:true  },
+    { id:'crit',        name:'Crit Chance',  desc:'+5% crit chance/level',    max:5, unique:false },
+    { id:'penetration', name:'Penetration',  desc:'+12% pierce chance/level', max:5, unique:true  },
   ],
   energy: [
-    { id:'dmg',         name:'Damage',        desc:'+0.15 dmg/level',         max:5, unique:false },
-    { id:'heatRed',     name:'Heat Control',  desc:'-6% heat gen/level',      max:5, unique:false },
-    { id:'resonance',   name:'Resonance',     desc:'+0.5s slow duration/lvl', max:5, unique:true  },
+    { id:'dmg',         name:'Damage',       desc:'+0.15 base dmg/level',     max:5, unique:false },
+    { id:'heatRed',     name:'Heat Control', desc:'-6% heat gen/level',       max:5, unique:false },
+    { id:'crit',        name:'Crit Chance',  desc:'+5% crit chance/level',    max:5, unique:false },
+    { id:'resonance',   name:'Resonance',    desc:'+0.5s slow duration/lvl',  max:5, unique:true  },
   ],
   plasma: [
-    { id:'dmg',         name:'Damage',        desc:'+0.15 dmg/level',         max:5, unique:false },
-    { id:'aoe',         name:'Blast+',        desc:'+8px AOE radius/level',   max:5, unique:false },
-    { id:'volatility',  name:'Volatility',    desc:'Burning enemies explode', max:5, unique:true  },
+    { id:'dmg',         name:'Damage',       desc:'+0.15 base dmg/level',     max:5, unique:false },
+    { id:'aoe',         name:'Blast+',       desc:'+8px AOE radius/level',    max:5, unique:false },
+    { id:'crit',        name:'Crit Chance',  desc:'+5% crit chance/level',    max:5, unique:false },
+    { id:'volatility',  name:'Volatility',   desc:'Burning enemies explode',  max:5, unique:true  },
   ],
 };
 
