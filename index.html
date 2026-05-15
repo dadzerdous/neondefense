@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>11NEON STRIKE: MERGE</title>
+<title>NEON STRIKE: MERGE</title>
 <style>
 
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
@@ -234,141 +234,238 @@
   }
 
   /* ---- SKILL DRAWER (mobile-friendly bottom sheet) ---- */
+  /* ── Command Center Overlay ───────────────────────────────────────────────── */
   #skillOverlay {
     position: absolute;
     left: 0; right: 0; bottom: 0;
-    height: 85vh;
+    height: 88vh;
     background: rgba(2,6,16,0.98);
-    border-top: 1px solid var(--cyan);
-    box-shadow: 0 -10px 40px rgba(0,245,255,0.15);
+    border-top: 1px solid rgba(0,245,255,0.3);
+    box-shadow: 0 -8px 32px rgba(0,245,255,0.12);
     z-index: 100;
     display: flex;
     flex-direction: column;
     transform: translateY(100%);
-    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-    touch-action: none;
+    transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+    touch-action: pan-y;
   }
   #skillOverlay.active { transform: translateY(0); }
 
+  /* Drag handle */
   #skillDragHandle {
-    width: 40px; height: 4px;
-    background: rgba(255,255,255,0.2);
+    width: 36px; height: 4px;
+    background: rgba(255,255,255,0.18);
     border-radius: 2px;
-    margin: 10px auto 0;
+    margin: 10px auto 6px;
     cursor: grab;
     flex-shrink: 0;
   }
 
-  .skill-title {
+  /* Title */
+  #ccTitle {
     font-family: 'Orbitron', monospace;
-    font-size: 16px;
+    font-size: 11px;
     font-weight: 900;
-    letter-spacing: 4px;
-    color: var(--cyan);
+    letter-spacing: 5px;
+    color: rgba(0,245,255,0.5);
     text-align: center;
-    padding: 8px 0 4px;
+    padding-bottom: 8px;
     flex-shrink: 0;
   }
 
-  .skill-tabs {
+  /* Type tabs -- row 1 */
+  #ccTypeTabs {
     display: flex;
-    gap: 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
     flex-shrink: 0;
   }
-
-  .skill-tab {
-    font-family: 'Orbitron', monospace;
-    font-size: 10px;
-    padding: 10px 0;
+  .cc-type-tab {
     flex: 1;
+    padding: 11px 0;
     border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
     background: transparent;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
     letter-spacing: 1px;
-    transition: all 0.2s;
-    text-align: center;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
   }
+  .cc-type-tab[data-type="kinetic"] { color: var(--kinetic); }
+  .cc-type-tab[data-type="energy"]  { color: var(--energy);  }
+  .cc-type-tab[data-type="plasma"]  { color: var(--plasma);  }
+  .cc-type-tab[data-type="pilot"]   { color: var(--yellow);  }
+  .cc-type-tab.active { border-bottom-color: currentColor; background: rgba(255,255,255,0.04); }
 
-  .skill-tab.kinetic { color: var(--kinetic); }
-  .skill-tab.energy  { color: var(--energy); }
-  .skill-tab.plasma  { color: var(--plasma); }
-  .skill-tab.pilot   { color: var(--yellow); }
-  .skill-tab.active  { border-bottom-color: currentColor; background: rgba(255,255,255,0.05); }
-
-  .skill-xp-bar {
-    padding: 8px 16px 4px;
+  /* Type header -- rank + points */
+  #ccTypeHeader {
+    padding: 10px 16px 0;
     flex-shrink: 0;
   }
-  .skill-xp-label {
-    font-size: 9px;
+  #ccTypeLabel {
+    font-family: 'Orbitron', monospace;
+    font-size: 18px;
+    font-weight: 900;
     letter-spacing: 2px;
-    opacity: 0.5;
-    margin-bottom: 4px;
-    text-align: center;
   }
-  .skill-xp-track {
+  #ccTypeMeta {
+    font-size: 9px;
+    color: rgba(255,255,255,0.3);
+    margin-top: 2px;
+    letter-spacing: 1px;
+  }
+
+  /* XP bar -- row 2 */
+  #ccXpRow {
+    padding: 8px 16px 6px;
+    flex-shrink: 0;
+  }
+  #ccXpMeta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8px;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+  }
+  #ccXpTrack {
     height: 4px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.08);
     border-radius: 2px;
     overflow: hidden;
   }
-  .skill-xp-fill {
+  #ccXpFill {
     height: 100%;
     border-radius: 2px;
     transition: width 0.4s;
   }
 
-  /* Scrollable skill grid */
-  #skillGrid {
+  /* Sub-tabs -- row 3 */
+  #ccSubTabs {
+    display: flex;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+  }
+  .cc-sub-tab {
     flex: 1;
-    overflow-y: auto;
-    padding: 12px;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    align-content: start;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .skill-node {
-    border: 1px solid rgba(255,255,255,0.12);
-    padding: 10px 8px;
-    cursor: pointer;
-    transition: all 0.15s;
-    background: rgba(0,10,20,0.8);
-    border-radius: 4px;
-  }
-  .skill-node.unlocked { border-color: var(--green); background: rgba(0,40,20,0.4); }
-  .skill-node.available { border-color: rgba(255,255,255,0.35); }
-  .skill-node.available:active { background: rgba(255,255,255,0.08); }
-  .skill-node.locked { opacity: 0.3; cursor: not-allowed; }
-
-  .skill-node-name {
+    padding: 9px 0;
+    border: none;
+    background: transparent;
     font-family: 'Orbitron', monospace;
     font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .cc-sub-tab.active {
+    color: white;
+    border-bottom-color: white;
+    background: rgba(255,255,255,0.03);
+  }
+
+  /* Content area */
+  #ccContent {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 16px;
+  }
+
+  /* Stat rows */
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .stat-info { flex: 1; min-width: 0; }
+  .stat-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    margin-bottom: 3px;
+  }
+  .stat-desc { font-size: 9px; color: rgba(255,255,255,0.3); margin-bottom: 6px; }
+  .stat-pips { display: flex; gap: 4px; }
+  .stat-pip {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    transition: background 0.2s;
+  }
+  .stat-pip.filled { }
+  .stat-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .stat-btn {
+    width: 32px; height: 32px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.4);
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-family: 'Share Tech Mono', monospace;
+    line-height: 1;
+  }
+  .stat-btn.enabled { border-color: currentColor; color: inherit; background: rgba(255,255,255,0.05); }
+  .stat-btn.enabled:active { background: rgba(255,255,255,0.15); }
+  .stat-val {
+    font-family: 'Orbitron', monospace;
+    font-size: 14px;
+    min-width: 20px;
+    text-align: center;
+  }
+
+  /* Skill tree SVG */
+  #ccSkillSvg {
+    width: 100%;
+    touch-action: pan-y;
+  }
+
+  /* Quest card */
+  .quest-card {
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 14px;
+    margin-bottom: 12px;
+    background: rgba(255,255,255,0.02);
+  }
+  .quest-tier-badge {
+    font-size: 8px;
+    letter-spacing: 2px;
+    opacity: 0.4;
     margin-bottom: 4px;
   }
-  .skill-node-desc {
-    font-size: 9px;
-    opacity: 0.55;
-    line-height: 1.4;
-    margin-bottom: 6px;
+  .quest-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    margin-bottom: 4px;
   }
-  .skill-node-cost {
+  .quest-desc { font-size: 10px; color: rgba(255,255,255,0.4); margin-bottom: 10px; line-height: 1.5; }
+  .quest-reward {
     font-size: 9px;
-    color: var(--yellow);
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 10px;
+    background: rgba(255,255,255,0.06);
   }
+  .quest-prog-row { display: flex; align-items: center; gap: 8px; }
+  .quest-prog-track {
+    flex: 1; height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px; overflow: hidden;
+  }
+  .quest-prog-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+  .quest-prog-label { font-size: 9px; color: rgba(255,255,255,0.3); white-space: nowrap; }
 
   #closeSkill {
     font-family: 'Orbitron', monospace;
-    font-size: 11px;
-    color: rgba(255,255,255,0.3);
+    font-size: 10px;
+    color: rgba(255,255,255,0.25);
     border: none;
-    border-top: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(255,255,255,0.06);
     background: transparent;
     padding: 14px;
     cursor: pointer;
@@ -560,21 +657,41 @@
   <button class="btn" style="color:rgba(255,255,255,0.35);border-color:rgba(255,255,255,0.12);font-size:9px;" onclick="quitToMenu()">MENU</button>
 </div>
 
-<!-- Skill Drawer (bottom sheet) -->
+<!-- Command Center (bottom sheet) -->
 <div id="skillOverlay">
   <div id="skillDragHandle"></div>
-  <div class="skill-title">COMMAND CENTER</div>
-  <div class="skill-tabs">
-    <button class="skill-tab kinetic active" onclick="switchTab('kinetic')">KINETIC</button>
-    <button class="skill-tab energy"         onclick="switchTab('energy')">ENERGY</button>
-    <button class="skill-tab plasma"         onclick="switchTab('plasma')">PLASMA</button>
-    <button class="skill-tab pilot"          onclick="switchTab('pilot')">PILOT</button>
+  <div id="ccTitle">COMMAND CENTER</div>
+
+  <!-- Row 1: Type tabs -->
+  <div id="ccTypeTabs">
+    <button class="cc-type-tab active" data-type="kinetic" onclick="window.ccSelectType('kinetic')">KINETIC</button>
+    <button class="cc-type-tab"        data-type="energy"  onclick="window.ccSelectType('energy')">ENERGY</button>
+    <button class="cc-type-tab"        data-type="plasma"  onclick="window.ccSelectType('plasma')">PLASMA</button>
+    <button class="cc-type-tab"        data-type="pilot"   onclick="window.ccSelectType('pilot')">PILOT</button>
   </div>
-  <div class="skill-xp-bar" id="xpBarContainer">
-    <div class="skill-xp-label" id="xpLabel"></div>
-    <div class="skill-xp-track"><div class="skill-xp-fill" id="xpFill"></div></div>
+
+  <!-- Row 2: Type name + rank + points -->
+  <div id="ccTypeHeader">
+    <div id="ccTypeLabel" style="color:var(--cyan)">KINETIC</div>
+    <div id="ccTypeMeta">RANK 1 &nbsp;&bull;&nbsp; 0 SKILL PTS &nbsp;&bull;&nbsp; 0 STAT PTS</div>
   </div>
-  <div id="skillGrid"></div>
+
+  <!-- Row 3: XP bar -->
+  <div id="ccXpRow">
+    <div id="ccXpMeta"><span>XP</span><span id="ccXpNums">0 / 250</span></div>
+    <div id="ccXpTrack"><div id="ccXpFill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Row 4: Sub-tabs -->
+  <div id="ccSubTabs">
+    <button class="cc-sub-tab active" onclick="window.ccSelectSub('stats')">STATS</button>
+    <button class="cc-sub-tab"        onclick="window.ccSelectSub('skills')">SKILLS</button>
+    <button class="cc-sub-tab"        onclick="window.ccSelectSub('quests')">QUESTS</button>
+  </div>
+
+  <!-- Content -->
+  <div id="ccContent"></div>
+
   <button id="closeSkill" onclick="closeSkills()">CLOSE</button>
 </div>
 

@@ -5,7 +5,7 @@ import { loadMeta, saveMeta, gainPilotXP, hasPilotSkill, hasTurretSkill, getTurr
 import { run, combat, board, input, screen, session, resetRun } from './state.js';
 import { initDraw, draw, reinitStars, resetChainTimerCache } from './draw.js';
 import { initInput } from './input.js';
-import { updateHUD, updatePrepHUD, hidePrepTimer, updateBossHP, hideBossHP, showWaveAnnounce, showGameOver, hideGameOver, openSkillDrawer, closeSkillDrawer, switchTab, renderSkillTab, splashTab, checkQuestToast, showQuestToast } from './ui.js';
+import { updateHUD, updatePrepHUD, hidePrepTimer, updateBossHP, hideBossHP, showWaveAnnounce, showGameOver, hideGameOver, openSkillDrawer, closeSkillDrawer, renderSkillTab, splashTab, checkQuestToast, showQuestToast, wireCC } from './ui.js';
 import { buyTurret, getRailCount, getHangarCount } from './turrets.js';
 import { updateTurrets } from './turrets.js';
 import { updateEnemies, updateBullets, updateEnemyBullets, killEnemy } from './enemies.js';
@@ -266,9 +266,10 @@ function wireButtons() {
     const btn = document.querySelector('.btn-sell');
     if (btn) { btn.style.background = input.sellMode ? 'var(--red)' : ''; btn.style.color = input.sellMode ? '#000' : ''; }
   };
+  wireCC(); // set up window.ccSelectType / window.ccSelectSub
   window.openSkills   = () => openSkillDrawer(meta);
   window.closeSkills  = () => closeSkillDrawer();
-  window.switchTab    = (tab) => switchTab(meta, tab);
+  window.switchTab    = (tab) => renderSkillTab(meta, tab);
   window.splashTab    = splashTab;
   window.menuSkillTab = (tab) => renderSkillTab(meta, tab); // for menu skills panel
 }
