@@ -2,7 +2,7 @@
 // All canvas rendering. Reads state, draws, never mutates.
 
 import { TYPES, SLOT_W, SLOT_GAP, RAIL_W, RAIL_GAP, BTN_ZONE, HNG_ZONE, RAIL_ZONE, PANEL_H, VISIBLE_HANGAR } from './constants.js';
-import { run, combat, board, input, screen } from './state.js';
+import { run, combat, board, input, screen, TURRET_MAX_HP } from './state.js';
 import { getRailPos, getSlotPos, getTurretRange, getPlasmaAoeRadius, getPanelTop } from './turrets.js';
 
 let ctx;
@@ -249,11 +249,20 @@ function drawPanelBackground() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, panelTop, screen.W, screen.H - panelTop);
 
+  // Base line
   ctx.strokeStyle = 'rgba(0,245,255,0.25)';
   ctx.lineWidth = 1;
   ctx.setLineDash([6, 6]);
   ctx.beginPath(); ctx.moveTo(0, panelTop); ctx.lineTo(screen.W, panelTop); ctx.stroke();
   ctx.setLineDash([]);
+
+  // Defense line label
+  ctx.save();
+  ctx.font = '8px "Orbitron"';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(0,245,255,0.3)';
+  ctx.fillText('DEFENSE LINE', 10, panelTop - RAIL_W - 18);
+  ctx.restore();
 }
 
 // ── Rails ─────────────────────────────────────────────────────────────────────
@@ -262,11 +271,30 @@ function drawRails(meta) {
   for (let i = 0; i < railCount; i++) {
     const p    = getRailPos(i, railCount);
     const slot = board.rails[i];
+    const hp   = board.railHp[i];
     const col  = slot ? TYPES[slot.type].color : 'rgba(0,245,255,0.6)';
+
     drawSlotBox(p.x, p.y, RAIL_W, RAIL_W, col, input.sellMode && slot);
+
     if (slot) {
       drawTurret(p.x + RAIL_W/2, p.y + RAIL_W/2, slot, true);
       drawTypeLabel(p.x + RAIL_W/2, p.y + RAIL_W - 3, slot.type);
+
+      // HP bar above the turret slot
+      const maxHp = TURRET_MAX_HP[slot.level] || 30;
+      const pct   = Math.max(0, hp / maxHp);
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(p.x, p.y - 6, RAIL_W, 4);
+      ctx.fillStyle = pct > 0.5 ? '#00ff88' : pct > 0.25 ? '#ffe600' : '#ff2244';
+      ctx.fillRect(p.x, p.y - 6, RAIL_W * pct, 4);
+
+      // Low HP glow warning
+      if (pct < 0.25) {
+        ctx.shadowBlur = 8; ctx.shadowColor = '#ff2244';
+        ctx.strokeStyle = '#ff2244'; ctx.lineWidth = 1.5;
+        ctx.strokeRect(p.x, p.y, RAIL_W, RAIL_W);
+        ctx.shadowBlur = 0; ctx.lineWidth = 1;
+      }
     }
   }
 }

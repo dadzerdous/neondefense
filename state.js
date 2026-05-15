@@ -39,7 +39,12 @@ export const board = {
   hangar:      Array(DEFAULT_HANGAR).fill(null),
   rails:       Array(DEFAULT_RAILS).fill(null),
   hangarPage:  0,
+  // Rail turret HP — index matches rails array
+  railHp:      Array(DEFAULT_RAILS).fill(null),
 };
+
+// Max HP per turret level
+export const TURRET_MAX_HP = { 1: 30, 2: 55, 3: 90, 4: 140 };
 
 // ── Combat objects ────────────────────────────────────────────────────────────
 export const combat = {
@@ -81,10 +86,10 @@ export const input = {
   sellMode:     false,
 };
 
-// ── Canvas dims (updated on resize) ──────────────────────────────────────────
+// ── Canvas dims (set properly in main.js on DOMContentLoaded) ────────────────
 export const screen = {
-  W: window.innerWidth,
-  H: window.innerHeight,
+  W: 0,
+  H: 0,
 };
 
 // ── Reset helpers ─────────────────────────────────────────────────────────────
@@ -100,6 +105,7 @@ export function resetRun(meta, startCredits, startShields, railCount, hangarCoun
 
   board.hangar     = Array(hangarCount).fill(null);
   board.rails      = Array(railCount).fill(null);
+  board.railHp     = Array(railCount).fill(null);
   board.hangarPage = 0;
 
   resetCombat();

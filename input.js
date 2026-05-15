@@ -3,6 +3,7 @@
 
 import { SLOT_W, SLOT_GAP, RAIL_W, VISIBLE_HANGAR } from './constants.js';
 import { run, board, input, screen } from './state.js';
+import { TURRET_MAX_HP } from './state.js';
 import { getRailPos, getSlotPos, getPanelTop, getMaxLevel, getTurretBuyCost, condenseRails, condenseHangar, returnToHangar } from './turrets.js';
 import { spawnMergeEffect } from './effects.js';
 import { gainTurretXP, saveMeta } from './meta.js';
@@ -150,7 +151,9 @@ function onUp(e, meta) {
         const p = getRailPos(i, board.rails.length);
         if (input.mouseX > p.x && input.mouseX < p.x+RAIL_W && input.mouseY > p.y && input.mouseY < p.y+RAIL_W) {
           if (!slot) {
-            board.rails[i] = input.dragging; dropped = true;
+            board.rails[i]  = input.dragging;
+            board.railHp[i] = TURRET_MAX_HP[input.dragging.level] || 30;
+            dropped = true;
           } else if (canMerge(meta, slot, input.dragging)) {
             slot.level++;
             gainTurretXP(meta, slot.type, 8); saveMeta(meta);

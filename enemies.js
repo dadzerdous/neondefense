@@ -1,9 +1,9 @@
 // ─── ENEMIES.JS ───────────────────────────────────────────────────────────────
 // Enemy spawning, updating, dying, enemy bullets.
 
-import { ENEMY_TYPES } from './constants.js';
-import { run, combat, screen } from './state.js';
-import { getPanelTop } from './turrets.js';
+import { ENEMY_TYPES, RAIL_W, RAIL_GAP } from './constants.js';
+import { run, combat, board, screen } from './state.js';
+import { getPanelTop, getRailPos } from './turrets.js';
 import { spawnParticles, spawnFloater } from './effects.js';
 import { calcDamage, getPlasmaAoeRadius, getPenetrationChance, getResonanceDuration, getVolatilityChance } from './turrets.js';
 import { hasTurretSkill } from './meta.js';
@@ -118,11 +118,34 @@ export function updateEnemies(meta, onDeath, onBaseHit) {
       }
     }
 
-    // Reached base
-    if (en.y > getPanelTop()) {
+    // Reached turret zone or base
+    const turretLineY = getPanelTop() - RAIL_W - 14;
+    if (en.y > turretLineY) {
+      // Check proximity to each rail turret
+      let hitTurret = false;
+      const railCount = board.rails.length;
+      for (let ri = 0; ri < railCount; ri++) {
+        if (!board.rails[ri] || board.railHp[ri] === null) continue;
+        const rp = getRailPos(ri, railCount);
+        const tx = rp.x + RAIL_W / 2;
+        if (Math.abs(en.x - tx) < RAIL_W) {
+          board.railHp[ri] -= 10;
+          spawnParticles(tx, rp.y + RAIL_W/2, '#ff2244', 5, 4);
+          hitTurret = true;
+          if (board.railHp[ri] <= 0) {
+            spawnParticles(tx, rp.y + RAIL_W/2, '#ff2244', 20, 6);
+            spawnFloater(tx, rp.y, 'TURRET DESTROYED', '#ff2244');
+            board.rails[ri]  = null;
+            board.railHp[ri] = null;
+          }
+          break;
+        }
+      }
+      if (!hitTurret) {
+        spawnParticles(en.x, getPanelTop(), '#ff2244', 8, 5);
+        onBaseHit(8);
+      }
       combat.enemies.splice(i, 1);
-      spawnParticles(en.x, getPanelTop(), '#ff2244', 8, 5);
-      onBaseHit(8);
     }
   }
 }

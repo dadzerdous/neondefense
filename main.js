@@ -18,6 +18,11 @@ let canvas, phase = 'splash';
 
 window.addEventListener('DOMContentLoaded', () => {
   canvas = document.getElementById('gameCanvas');
+
+  // Set correct dimensions immediately -- don't wait for a resize event
+  screen.W = canvas.width  = window.innerWidth;
+  screen.H = canvas.height = window.innerHeight;
+
   initDraw(canvas);
   initInput(canvas, meta);
   wireButtons();
@@ -28,6 +33,7 @@ window.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('resize', () => {
   screen.W = canvas.width  = window.innerWidth;
   screen.H = canvas.height = window.innerHeight;
+});
 });
 
 // ── Main loop ─────────────────────────────────────────────────────────────────

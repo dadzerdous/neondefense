@@ -16,7 +16,8 @@ export function getMaxLevel(meta) { return hasPilotSkill(meta, 'pr7') ? 4 : 3; }
 
 export function getRailPos(i, railCount) {
   const total = railCount * (RAIL_W + RAIL_GAP) - RAIL_GAP;
-  const y = screen.H - BTN_ZONE - HNG_ZONE - RAIL_ZONE + 8;
+  // Sit turrets ABOVE the panel line, in the play area
+  const y = getPanelTop() - RAIL_W - 14;
   return { x: screen.W/2 - total/2 + i*(RAIL_W + RAIL_GAP), y };
 }
 
@@ -100,9 +101,11 @@ export function buyTurret(meta) {
 
 // ── Condense helpers ──────────────────────────────────────────────────────────
 export function condenseRails() {
-  const filled = board.rails.filter(s => s !== null);
+  const filled   = board.rails.filter(s => s !== null);
+  const filledHp = board.rails.map((s,i) => s ? board.railHp[i] : null).filter(h => h !== null);
   for (let i = 0; i < board.rails.length; i++) {
-    board.rails[i] = filled[i] || null;
+    board.rails[i]  = filled[i]   || null;
+    board.railHp[i] = filledHp[i] || null;
   }
 }
 
