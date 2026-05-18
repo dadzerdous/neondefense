@@ -33,12 +33,35 @@ function initStars() {
 }
 
 export function reinitStars() { initStars(); }
+
+// ── Viewport zoom ─────────────────────────────────────────────────────────────
+let viewZoom = 1, viewOX = 0, viewOY = 0;
+export function getViewTransform() { return { zoom: viewZoom, ox: viewOX, oy: viewOY }; }
+export function screenToGame(sx, sy) {
+  return { x: (sx - viewOX) / viewZoom, y: (sy - viewOY) / viewZoom };
+}
+function updateZoom(meta) {
+  const panelTop = getPanelTop();
+  let maxRange   = 220;
+  board.rails.forEach(slot => { if (slot) { const r = getTurretRange(meta, slot); if (r > maxRange) maxRange = r; } });
+  const targetZ = (panelTop * 0.88) / (maxRange * 1.2);
+  viewZoom = viewZoom + (Math.min(Math.max(targetZ, 0.45), 2.2) - viewZoom) * 0.03;
+  viewOX   = screen.W / 2 * (1 - viewZoom);
+  viewOY   = panelTop / 2 * (1 - viewZoom);
+}
+
 export function draw(meta) {
-  // Deep navy background instead of pure black
   ctx.fillStyle = '#020816';
   ctx.fillRect(0, 0, screen.W, screen.H);
 
+  updateZoom(meta);
   drawStars();
+
+  // Apply zoom transform to play area only
+  ctx.save();
+  ctx.translate(viewOX, viewOY);
+  ctx.scale(viewZoom, viewZoom);
+
   drawGrid();
   drawRangeOverlays(meta);
   drawEnemies();
@@ -46,6 +69,9 @@ export function draw(meta) {
   drawPlayerBullets();
   drawEnemyBullets();
   drawBeam(meta);
+
+  ctx.restore(); // end zoom
+
   drawPanelBackground();
   drawRails(meta);
   drawHangar(meta);
@@ -263,12 +289,66 @@ function drawBoss() {
 // ── Bullets ───────────────────────────────────────────────────────────────────
 function drawPlayerBullets() {
   combat.bullets.forEach(b => {
+    if (b.isOrb) {
+      // Plasma orb -- glowing ball
+      const pulse = Math.sin(combat.frameCount * 0.3) * 2;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.orbR + pulse, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,102,0,0.25)';
+      ctx.shadowBlur = 20; ctx.shadowColor = '#ff6600';
+      ctx.fill();
+      ctx.strokeStyle = '#ff6600';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // Inner core
+      ctx.beginPath();
+      ctx.arc(b.x, b.y, b.orbR * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = b.crit ? '#ffffff' : '#ffaa44';
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+      return;
+    }
+    // Kinetic bullet -- slim rectangle
     const col = TYPES[b.type]?.color || '#fff';
     ctx.shadowBlur = 8; ctx.shadowColor = col;
     ctx.fillStyle  = col;
     ctx.fillRect(b.x - 2, b.y - 5, 4, 10);
     ctx.shadowBlur = 0;
   });
+
+  // Energy arcs
+  if (combat.arcTargets?.length) {
+    combat.arcTargets.forEach(arc => {
+      if (arc.life <= 0) return;
+      const alpha = arc.life / 8;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = '#cc00ff';
+      ctx.lineWidth   = 1.5;
+      ctx.shadowBlur  = 12;
+      ctx.shadowColor = '#cc00ff';
+
+      // Jagged lightning path
+      ctx.beginPath();
+      ctx.moveTo(arc.fromX, arc.fromY);
+      const dx = arc.toX - arc.fromX;
+      const dy = arc.toY - arc.fromY;
+      const dist = Math.hypot(dx, dy);
+      const steps = Math.max(3, Math.floor(dist / 30));
+      for (let s = 1; s < steps; s++) {
+        const t = s / steps;
+        const jitter = (Math.random() - 0.5) * 18;
+        const nx = arc.fromX + dx * t + (-dy/dist) * jitter;
+        const ny = arc.fromY + dy * t + (dx/dist)  * jitter;
+        ctx.lineTo(nx, ny);
+      }
+      ctx.lineTo(arc.toX, arc.toY);
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
 }
 
 function drawEnemyBullets() {

@@ -1,13 +1,12 @@
 // ─── INPUT.JS ─────────────────────────────────────────────────────────────────
 // All pointer and touch event handling.
 
-import { SLOT_W, SLOT_GAP, RAIL_W, VISIBLE_HANGAR } from './constants.js';
-import { run, board, input, screen } from './state.js';
-import { TURRET_MAX_HP } from './state.js';
+import { SLOT_W, SLOT_GAP, RAIL_W, VISIBLE_HANGAR, TYPES } from './constants.js';
+import { run, board, input, screen, TURRET_MAX_HP } from './state.js';
 import { getRailPos, getSlotPos, getPanelTop, getMaxLevel, getTurretBuyCost, condenseRails, condenseHangar, returnToHangar } from './turrets.js';
 import { spawnMergeEffect } from './effects.js';
 import { gainTurretXP, saveMeta } from './meta.js';
-import { TYPES } from './constants.js';
+import { screenToGame } from './draw.js';
 
 export function initInput(canvas, meta) {
   canvas.addEventListener('pointerdown', e => onDown(e, meta));
@@ -88,8 +87,9 @@ function onDown(e, meta) {
   // Beam
   if (!picked && y < panelTop) {
     input.beamActive = true;
-    input.beamX = x;
-    input.beamY = Math.min(y, panelTop - 2);
+    const g = screenToGame(x, Math.min(y, panelTop - 2));
+    input.beamX = g.x;
+    input.beamY = g.y;
   }
   updateMouse(e);
 }
@@ -98,8 +98,9 @@ function onMove(e, meta) {
   updateMouse(e);
   if (input.beamActive) {
     const panelTop = getPanelTop();
-    input.beamX = e.clientX;
-    input.beamY = Math.min(e.clientY, panelTop - 2);
+    const raw = screenToGame(e.clientX, Math.min(e.clientY, panelTop - 2));
+    input.beamX = raw.x;
+    input.beamY = Math.min(raw.y, panelTop - 2);
   }
 
   input.hoveredSlot = null;

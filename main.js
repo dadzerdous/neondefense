@@ -72,7 +72,7 @@ function update() {
   combat.combatFrame++;
   tickEnemySpawns(run.wave);
   updateBeam();
-  updateTurrets(meta);
+  updateTurrets(meta, (idx) => killEnemy(meta, idx, onEnemyKill));
   updateBullets(meta, onEnemyKill);
   updateEnemies(meta, onEnemyKill, onBaseHit);
   updateEnemyBullets(onBaseHit);
@@ -118,11 +118,13 @@ function updateBeam() {
 
   combat.enemies.forEach((en, i) => {
     if (Math.hypot(en.x - input.beamX, en.y - input.beamY) < beamRadius) {
+      en.lastHitType = 'energy'; // fix: beam kills give energy XP
       en.hp -= beamDmg * heatBonus;
       if (en.hp <= 0) killEnemy(meta, i, onEnemyKill);
     }
   });
   if (combat.boss && Math.hypot(combat.boss.x - input.beamX, combat.boss.y - input.beamY) < beamRadius * 1.5) {
+    combat.boss.lastHitType = 'energy';
     combat.boss.hp -= beamDmg * 0.5;
   }
 }
@@ -134,6 +136,7 @@ function updateIonStorm() {
   if (combat.ionPulseTimer >= 600) {
     combat.ionPulseTimer = 0;
     combat.enemies.forEach((en, i) => {
+      en.lastHitType = 'energy'; // ion storm = energy kill
       en.hp -= 8;
       if (en.hp <= 0) killEnemy(meta, i, onEnemyKill);
     });

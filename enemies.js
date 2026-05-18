@@ -3,11 +3,9 @@
 
 import { ENEMY_TYPES, RAIL_W, RAIL_GAP } from './constants.js';
 import { run, combat, board, screen } from './state.js';
-import { getPanelTop, getRailPos } from './turrets.js';
+import { getPanelTop, getRailPos, calcDamage, getPlasmaAoeRadius, getPenetrationChance, getResonanceDuration, getVolatilityChance, explodeOrb } from './turrets.js';
 import { spawnParticles, spawnFloater } from './effects.js';
-import { calcDamage, getPlasmaAoeRadius, getPenetrationChance, getResonanceDuration, getVolatilityChance } from './turrets.js';
-import { hasTurretSkill } from './meta.js';
-import { gainPilotXP, gainTurretXP, trackQuest, saveMeta } from './meta.js';
+import { hasTurretSkill, gainPilotXP, gainTurretXP, trackQuest, saveMeta } from './meta.js';
 
 // ── Chain kill system ─────────────────────────────────────────────────────────
 function registerKill(meta, x, y, reward, killerType) {
@@ -56,10 +54,14 @@ export function spawnEnemy(def, wave) {
   const hpScale     = def.hpScale || 1;
   const baseHp      = def.hpMult * (3 + wave * 0.6) * hpScale;
 
+  // Spawn just above the visible zoomed area (a few frames out)
+  // getViewTransform imported from draw is circular -- use a simple offset
+  const spawnY = def.y ?? -40; // just off top
+
   combat.enemies.push({
     ...def,
     x:          def.x ?? (60 + Math.random() * (screen.W - 120)),
-    y:          def.y ?? -20,
+    y:          spawnY,
     hp:         baseHp,
     maxHp:      baseHp,
     speed,
@@ -167,6 +169,7 @@ export function killEnemy(meta, idx, onDeath) {
       if (k === idx) continue;
       const splash = combat.enemies[k];
       if (splash && Math.hypot(splash.x - en.x, splash.y - en.y) < boom) {
+        splash.lastHitType = 'plasma'; // volatility = plasma kill
         splash.hp -= 5;
         if (splash.hp <= 0) killEnemy(meta, k, onDeath);
       }
@@ -189,7 +192,38 @@ export function updateBullets(meta, onEnemyKill) {
     b.x += b.vx; b.y += b.vy; b.life--;
 
     if (b.life <= 0 || b.x < 0 || b.x > screen.W || b.y < 0 || b.y > screen.H) {
+      // Plasma orb timeout — explode anyway
+      if (b.isOrb) {
+        spawnParticles(b.x, b.y, '#ff6600', 20, 6);
+        explodeOrb(meta, b, onEnemyKill);
+        for (let k = combat.enemies.length - 1; k >= 0; k--) {
+          if (combat.enemies[k]?._dead) { delete combat.enemies[k]._dead; killEnemy(meta, k, onEnemyKill); }
+        }
+      }
       combat.bullets.splice(i, 1); continue;
+    }
+
+    // Plasma orb: check collision by orb radius
+    if (b.isOrb) {
+      let hit = false;
+      for (let j = combat.enemies.length - 1; j >= 0; j--) {
+        const en = combat.enemies[j];
+        if (Math.hypot(en.x - b.x, en.y - b.y) < (b.orbR + 10)) {
+          hit = true; break;
+        }
+      }
+      if (combat.boss && Math.hypot(combat.boss.x - b.x, combat.boss.y - b.y) < (b.orbR + combat.boss.size)) hit = true;
+      if (hit) {
+        spawnParticles(b.x, b.y, '#ff6600', 30, 8);
+        spawnParticles(b.x, b.y, '#ff2244', 15, 5);
+        if (b.crit) spawnFloater(b.x, b.y - 20, 'CRIT!', '#ffe600');
+        explodeOrb(meta, b, onEnemyKill);
+        for (let k = combat.enemies.length - 1; k >= 0; k--) {
+          if (combat.enemies[k]?._dead) { delete combat.enemies[k]._dead; killEnemy(meta, k, onEnemyKill); }
+        }
+        combat.bullets.splice(i, 1);
+      }
+      continue; // skip kinetic logic for orbs
     }
 
     let bulletDead = false;
@@ -237,6 +271,7 @@ export function updateBullets(meta, onEnemyKill) {
             const splash = combat.enemies[k];
             if (!splash) continue;
             if (Math.hypot(splash.x - b.x, splash.y - b.y) < aoeR) {
+              splash.lastHitType = 'plasma';
               splash.hp -= calcDamage(meta, b, splash) * 0.6;
               spawnParticles(splash.x, splash.y, '#ff6600', 3, 3);
               splashCount++;
