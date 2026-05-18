@@ -251,7 +251,7 @@ function quitToMenu() {
 function updateSplashStats() {
   const s = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
   s('splashRank',  meta.pilotRank);
-  s('splashHigh',  meta.highScore || '--');
+  s('splashHigh',  meta.highScore > 0 ? meta.highScore : '--');
   s('splashRuns',  meta.totalRuns || 0);
   s('splashKRank', 'R' + (meta.turretRank?.kinetic || 1));
   s('splashERank', 'R' + (meta.turretRank?.energy  || 1));
@@ -264,9 +264,10 @@ function wireButtons() {
   window.startGame    = startGame;
   window.restartGame  = restartGame;
   window.quitToMenu   = quitToMenu;
-  window.resetMeta    = () => {
+  window.resetMeta = () => {
     if (!confirm('Reset ALL progress? Cannot be undone.')) return;
     localStorage.removeItem('neonStrikeSave_v2');
+    localStorage.removeItem('neonStrikeSave'); // clear old monolith save too
     meta = loadMeta();
     updateSplashStats();
   };
