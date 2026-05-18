@@ -522,7 +522,9 @@ function isBranchUnlocked(meta, type, branch) {
   const chains = QUEST_CHAINS[type] || [];
   const chain  = chains.find(c => c.reward === branch);
   if (!chain) return true;
-  return meta.quests?.[chain.id+'_t0']==='done' || meta.quests?.[chain.id]==='done';
+  const result = meta.quests?.[chain.id+'_t0']==='done' || meta.quests?.[chain.id]==='done';
+  if (!result) console.log('[Branch locked]', type, branch, 'chain.id:', chain.id, 'quests:', JSON.stringify(meta.quests));
+  return result;
 }
 
 function mkEl(tag, cls) {

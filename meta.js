@@ -21,9 +21,9 @@ function defaultMeta() {
     turretStatPoints: { kinetic:0, energy:0, plasma:0 },
 
     turretStats: {
-      kinetic: { dmg:0, fireRate:0,  crit:0, penetration:0 },
-      energy:  { dmg:0, heatRed:0,   crit:0, resonance:0   },
-      plasma:  { dmg:0, aoe:0,       crit:0, volatility:0  },
+      kinetic: { dmg:0, fireRate:0, crit:0, penetration:0 },
+      energy:  { dmg:0, fireRate:0, heatRed:0, crit:0, resonance:0 },
+      plasma:  { dmg:0, fireRate:0, aoe:0, crit:0, volatility:0  },
     },
 
     pilotSkills:  {},
@@ -207,6 +207,7 @@ export function getQuestProgress(meta, questId) {
  * Increment quest progress. Returns array of completion events.
  */
 export function trackQuest(meta, type, statKey, amount) {
+  if (!meta.quests) meta.quests = {}; // safety guard
   const defs = QUEST_DEFS[type] || [];
   const events = [];
 
@@ -218,7 +219,8 @@ export function trackQuest(meta, type, statKey, amount) {
     const before  = meta[key] || 0;
     meta[key]     = before + amount;
 
-    // Include progress info for toast throttling in caller
+    console.log('[Quest]', qd.id, statKey, meta[key], '/', qd.target);
+
     events.push({
       type:      'questProgress',
       questType: type,
@@ -227,12 +229,12 @@ export function trackQuest(meta, type, statKey, amount) {
       questName: qd.name,
       current:   meta[key],
       target:    qd.target,
-      color:     qd.color,
       done:      meta[key] >= qd.target,
     });
 
     if (meta[key] >= qd.target) {
       meta.quests[qd.id] = 'done';
+      console.log('[Quest COMPLETE]', qd.id, 'meta.quests:', JSON.stringify(meta.quests));
       events.push({ type:'questComplete', questId: qd.id, questName: qd.name, reward: qd.reward, questType: type });
     }
   });
