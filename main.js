@@ -1,7 +1,7 @@
 // ─── MAIN.JS ──────────────────────────────────────────────────────────────────
 // Game loop, init, beam logic, wires all modules together.
 
-import { loadMeta, saveMeta, gainPilotXP, hasPilotSkill, hasTurretSkill, getTurretStat, trackQuest } from './meta.js';
+import { loadMeta, saveMeta, gainPilotXP, hasPilotSkill, hasTurretSkill, getTurretStat, trackQuest, tickQuestSave } from './meta.js';
 import { run, combat, board, input, screen, session, resetRun } from './state.js';
 import { initDraw, draw, reinitStars, resetChainTimerCache } from './draw.js';
 import { initInput } from './input.js';
@@ -60,6 +60,7 @@ function coolHeat() {
 function update() {
   combat.frameCount++;
   updateHUD(meta);
+  tickQuestSave(meta); // batch-save quest progress every ~5s
 
   if (phase === 'prep') {
     updatePrep();
@@ -181,6 +182,7 @@ function onBossKill(reward) {
 }
 
 function onWaveClear(bonus) {
+  saveMeta(meta); // persist quest progress at end of each wave
   run.wave++;
   setTimeout(() => {
     showWaveAnnounce(run.wave);
@@ -226,7 +228,7 @@ function gameOver() {
   session.isGameOver = true;
   meta.highScore = Math.max(meta.highScore, run.wave);
   gainPilotXP(meta, run.wave * 2);
-  saveMeta(meta);
+  saveMeta(meta); // full save captures all in-memory quest progress
   showGameOver(meta, run.wave);
 }
 

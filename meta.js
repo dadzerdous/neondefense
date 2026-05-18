@@ -206,8 +206,26 @@ export function getQuestProgress(meta, questId) {
 /**
  * Increment quest progress. Returns array of completion events.
  */
+// ── Batched quest save ────────────────────────────────────────────────────────
+// Quest progress is tracked in memory every frame but only saved every 5s
+// to avoid hammering localStorage on high-frequency events like burn ticks.
+let _questSaveDirty = false;
+let _questSaveTimer = 0;
+
+export function markQuestDirty() { _questSaveDirty = true; }
+
+export function tickQuestSave(meta) {
+  if (!_questSaveDirty) return;
+  _questSaveTimer++;
+  if (_questSaveTimer >= 300) { // 300 frames ≈ 5 seconds at 60fps
+    _questSaveTimer   = 0;
+    _questSaveDirty   = false;
+    saveMeta(meta);
+  }
+}
+
 export function trackQuest(meta, type, statKey, amount) {
-  if (!meta.quests) meta.quests = {}; // safety guard
+  if (!meta.quests) meta.quests = {};
   const defs = QUEST_DEFS[type] || [];
   const events = [];
 
@@ -215,9 +233,8 @@ export function trackQuest(meta, type, statKey, amount) {
     if (qd.statKey !== statKey) return;
     if (meta.quests[qd.id] === 'done') return;
 
-    const key     = 'qprog_' + qd.id;
-    const before  = meta[key] || 0;
-    meta[key]     = before + amount;
+    const key  = 'qprog_' + qd.id;
+    meta[key]  = (meta[key] || 0) + amount;
 
     console.log('[Quest]', qd.id, statKey, meta[key], '/', qd.target);
 
@@ -234,8 +251,11 @@ export function trackQuest(meta, type, statKey, amount) {
 
     if (meta[key] >= qd.target) {
       meta.quests[qd.id] = 'done';
-      console.log('[Quest COMPLETE]', qd.id, 'meta.quests:', JSON.stringify(meta.quests));
+      console.log('[Quest COMPLETE]', qd.id, JSON.stringify(meta.quests));
       events.push({ type:'questComplete', questId: qd.id, questName: qd.name, reward: qd.reward, questType: type });
+      saveMeta(meta); // save immediately on completion
+    } else {
+      markQuestDirty(); // batch save for progress updates
     }
   });
 
