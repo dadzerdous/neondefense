@@ -3,9 +3,8 @@
 
 import {
   SAVE_KEY,
-  PILOT_XP_PER_RANK, TURRET_XP_PER_RANK,
-  QUEST_DEFS, BRANCH_SKILLS,
-  TURRET_SKILLS, PILOT_SKILLS,
+  TURRET_XP_PER_RANK, PILOT_XP_PER_RANK,
+  QUEST_DEFS, BRANCH_SKILLS, TURRET_SKILLS, PILOT_SKILLS,
 } from './constants.js';
 
 // ── Default structure ─────────────────────────────────────────────────────────
@@ -111,8 +110,9 @@ export function gainPilotXP(meta, amount) {
 export function gainTurretXP(meta, turretType, amount) {
   meta.turretXP[turretType] += amount;
   const events = [];
+  const maxRank = getMaxTurretRank(meta, turretType);
   while (
-    meta.turretRank[turretType] < TURRET_XP_PER_RANK.length &&
+    meta.turretRank[turretType] < maxRank &&
     meta.turretXP[turretType] >= getNextTurretXP(meta, turretType)
   ) {
     meta.turretXP[turretType] -= getNextTurretXP(meta, turretType);
@@ -206,25 +206,19 @@ export function getQuestProgress(meta, questId) {
 /**
  * Increment quest progress. Returns array of completion events.
  */
-// ── Batched quest save ────────────────────────────────────────────────────────
-// Quest progress is tracked in memory every frame but only saved every 5s
-// to avoid hammering localStorage on high-frequency events like burn ticks.
 let _questSaveDirty = false;
 let _questSaveTimer = 0;
-
 export function markQuestDirty() { _questSaveDirty = true; }
-
 export function tickQuestSave(meta) {
   if (!_questSaveDirty) return;
   _questSaveTimer++;
-  if (_questSaveTimer >= 300) { // 300 frames ≈ 5 seconds at 60fps
-    _questSaveTimer   = 0;
-    _questSaveDirty   = false;
-    saveMeta(meta);
+  if (_questSaveTimer >= 300) {
+    _questSaveTimer = 0; _questSaveDirty = false; saveMeta(meta);
   }
 }
-
-export function trackQuest(meta, type, statKey, amount) {
+ * Pass highFrequency=true for burn damage etc to use batched save.
+ */
+export function trackQuest(meta, type, statKey, amount, highFrequency = false) {
   if (!meta.quests) meta.quests = {};
   const defs = QUEST_DEFS[type] || [];
   const events = [];
@@ -233,10 +227,8 @@ export function trackQuest(meta, type, statKey, amount) {
     if (qd.statKey !== statKey) return;
     if (meta.quests[qd.id] === 'done') return;
 
-    const key  = 'qprog_' + qd.id;
-    meta[key]  = (meta[key] || 0) + amount;
-
-    console.log('[Quest]', qd.id, statKey, meta[key], '/', qd.target);
+    const key = 'qprog_' + qd.id;
+    meta[key] = (meta[key] || 0) + amount;
 
     events.push({
       type:      'questProgress',
@@ -251,15 +243,51 @@ export function trackQuest(meta, type, statKey, amount) {
 
     if (meta[key] >= qd.target) {
       meta.quests[qd.id] = 'done';
-      console.log('[Quest COMPLETE]', qd.id, JSON.stringify(meta.quests));
       events.push({ type:'questComplete', questId: qd.id, questName: qd.name, reward: qd.reward, questType: type });
-      saveMeta(meta); // save immediately on completion
+      saveMeta(meta); // always save immediately on completion
+    } else if (highFrequency) {
+      markQuestDirty(); // batch save for high-frequency events
     } else {
-      markQuestDirty(); // batch save for progress updates
+      saveMeta(meta); // save immediately for normal events
     }
   });
 
   return events;
+}
+
+// ── Max rank unlock ───────────────────────────────────────────────────────────
+// Each type can unlock rank 6 by completing the prestige quest.
+// Prestige quest: reach max rank (5) AND build 25 max-level (lv3) turrets of that type.
+
+export function getMaxTurretRank(meta, type) {
+  // Base max is 5. Prestige quest extends to 6.
+  const prestigeKey = 'prestige_' + type;
+  return (meta[prestigeKey]) ? 6 : 5;
+}
+
+export function checkPrestigeQuest(meta, type) {
+  // Already prestiged
+  if (meta['prestige_' + type]) return null;
+
+  const rank    = meta.turretRank?.[type] || 1;
+  const built   = meta['qprog_prestige_built_' + type] || 0;
+  const maxRank = 5; // must be at base max rank to prestige
+
+  if (rank >= maxRank && built >= 25) {
+    meta['prestige_' + type] = true;
+    saveMeta(meta);
+    return { type:'prestigeUnlocked', turretType: type };
+  }
+  return null;
+}
+
+export function trackPrestigeBuild(meta, type, level) {
+  if (meta['prestige_' + type]) return null; // already prestiged
+  if (level < 3) return null; // only max-level turrets count
+  const key = 'qprog_prestige_built_' + type;
+  meta[key] = (meta[key] || 0) + 1;
+  saveMeta(meta);
+  return checkPrestigeQuest(meta, type);
 }
 
 // ── Pilot skill query helpers (used by turrets/combat) ───────────────────────

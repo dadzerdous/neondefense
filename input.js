@@ -12,7 +12,7 @@ import { SLOT_W, SLOT_GAP, RAIL_W, VISIBLE_HANGAR, TYPES } from './constants.js'
 import { run, board, input, screen, TURRET_MAX_HP } from './state.js';
 import { getRailPos, getSlotPos, getPanelTop, getMaxLevel, getTurretBuyCost, condenseRails, condenseHangar, returnToHangar } from './turrets.js';
 import { spawnMergeEffect } from './effects.js';
-import { gainTurretXP, saveMeta } from './meta.js';
+import { gainTurretXP, saveMeta, trackPrestigeBuild } from './meta.js';
 import { screenToGame } from './draw.js';
 
 // ── Long-press state ──────────────────────────────────────────────────────────
@@ -220,7 +220,9 @@ function onUp(e, meta) {
           board.hangar[ai] = input.dragging; dropped = true;
         } else if (canMerge(meta, board.hangar[ai], input.dragging)) {
           board.hangar[ai].level++;
-          gainTurretXP(meta, board.hangar[ai].type, 8); saveMeta(meta);
+          gainTurretXP(meta, board.hangar[ai].type, 8);
+          trackPrestigeBuild(meta, board.hangar[ai].type, board.hangar[ai].level);
+          saveMeta(meta);
           dropped = true;
           spawnMergeEffect(p.x+SLOT_W/2, p.y+SLOT_W/2, TYPES[board.hangar[ai].type].color);
         }
@@ -239,8 +241,10 @@ function onUp(e, meta) {
             dropped = true;
           } else if (canMerge(meta, slot, input.dragging)) {
             slot.level++;
-            board.railHp[i] = TURRET_MAX_HP[slot.level] || 30; // refill HP on merge
-            gainTurretXP(meta, slot.type, 8); saveMeta(meta);
+            board.railHp[i] = TURRET_MAX_HP[slot.level] || 30;
+            gainTurretXP(meta, slot.type, 8);
+            trackPrestigeBuild(meta, slot.type, slot.level);
+            saveMeta(meta);
             board.rails[i] = slot; dropped = true;
             spawnMergeEffect(p.x+RAIL_W/2, p.y+RAIL_W/2, TYPES[slot.type].color);
           } else {

@@ -10,6 +10,7 @@ import {
   isSkillAvailable, unlockSkill as metaUnlock,
   spendStatPoint as metaSpend,
   getStatCost, getQuestProgress, saveMeta,
+  getMaxTurretRank,
 } from './meta.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -514,17 +515,56 @@ function renderQuests(container) {
 
     container.appendChild(card);
   });
-}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+  // Prestige card (turret types only)
+  if (type !== 'pilot') {
+    const meta       = _meta;
+    const color      = TYPE_COLORS[type];
+    const prestiged  = !!meta['prestige_' + type];
+    const rank       = meta.turretRank?.[type] || 1;
+    const built      = meta['qprog_prestige_built_' + type] || 0;
+    const rankReady  = rank >= 5;
+    const builtReady = built >= 25;
+    const pct        = Math.min(100, Math.round(built / 25 * 100));
+
+    const pcard = mkEl('div','quest-card');
+    pcard.style.cssText += ';border-color:' + (prestiged?'rgba(255,230,0,0.4)':'rgba(255,255,255,0.06)') +
+      ';background:' + (prestiged?'rgba(255,230,0,0.04)':'rgba(255,255,255,0.01)') + ';margin-top:8px;';
+
+    pcard.innerHTML =
+      '<div class="quest-tier-badge" style="color:#ffe600;">PRESTIGE QUEST</div>' +
+      '<div class="quest-name" style="color:' + (prestiged?'#ffe600':color) + ';">' +
+        (prestiged ? '★ RANK 6 UNLOCKED' : 'Unlock Rank 6') +
+      '</div>' +
+      '<div class="quest-desc">' +
+        (prestiged
+          ? 'Prestiged — Rank 6 is now available for this type.'
+          : 'Reach Rank 5 AND build 25 max-level (Lv3) ' + type + ' turrets.') +
+      '</div>' +
+      (!prestiged ?
+        '<div style="display:flex;gap:6px;margin-bottom:8px;">' +
+          '<span style="font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,0.04);color:' + (rankReady?'#00ff88':'rgba(255,255,255,0.3)') + ';">' +
+            (rankReady ? '✓ Rank 5' : 'Rank ' + rank + '/5') +
+          '</span>' +
+          '<span style="font-size:9px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,0.04);color:' + (builtReady?'#00ff88':'rgba(255,255,255,0.3)') + ';">' +
+            (builtReady ? '✓ 25 Lv3 built' : built + '/25 Lv3') +
+          '</span>' +
+        '</div>' +
+        '<div class="quest-prog-row">' +
+          '<div class="quest-prog-track"><div class="quest-prog-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
+          '<span class="quest-prog-label">' + built + '/25</span>' +
+        '</div>'
+      : '');
+
+    container.appendChild(pcard);
+  }
+}
 function isBranchUnlocked(meta, type, branch) {
   if (branch === 'core') return true;
   const chains = QUEST_CHAINS[type] || [];
   const chain  = chains.find(c => c.reward === branch);
   if (!chain) return true;
-  const result = meta.quests?.[chain.id+'_t0']==='done' || meta.quests?.[chain.id]==='done';
-  if (!result) console.log('[Branch locked]', type, branch, 'chain.id:', chain.id, 'quests:', JSON.stringify(meta.quests));
-  return result;
+  return meta.quests?.[chain.id+'_t0']==='done' || meta.quests?.[chain.id]==='done';
 }
 
 function mkEl(tag, cls) {

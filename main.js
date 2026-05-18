@@ -1,7 +1,7 @@
 // ─── MAIN.JS ──────────────────────────────────────────────────────────────────
 // Game loop, init, beam logic, wires all modules together.
 
-import { loadMeta, saveMeta, gainPilotXP, hasPilotSkill, hasTurretSkill, getTurretStat, trackQuest, tickQuestSave } from './meta.js';
+import { loadMeta, saveMeta, gainPilotXP, hasPilotSkill, hasTurretSkill, getTurretStat, trackQuest, tickQuestSave, trackPrestigeBuild } from './meta.js';
 import { run, combat, board, input, screen, session, resetRun } from './state.js';
 import { initDraw, draw, reinitStars, resetChainTimerCache } from './draw.js';
 import { initInput } from './input.js';

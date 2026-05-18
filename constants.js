@@ -89,12 +89,14 @@ export const TURRET_STAT_DEFS = {
   ],
   energy: [
     { id:'dmg',         name:'Damage',       desc:'+0.15 base dmg/level',     max:5, unique:false },
+    { id:'fireRate',    name:'Fire Rate',     desc:'+8% rate/level',           max:5, unique:false },
     { id:'heatRed',     name:'Heat Control', desc:'-6% heat gen/level',       max:5, unique:false },
     { id:'crit',        name:'Crit Chance',  desc:'+5% crit chance/level',    max:5, unique:false },
     { id:'resonance',   name:'Resonance',    desc:'+0.5s slow duration/lvl',  max:5, unique:true  },
   ],
   plasma: [
     { id:'dmg',         name:'Damage',       desc:'+0.15 base dmg/level',     max:5, unique:false },
+    { id:'fireRate',    name:'Fire Rate',     desc:'+8% rate/level',           max:5, unique:false },
     { id:'aoe',         name:'Blast+',       desc:'+8px AOE radius/level',    max:5, unique:false },
     { id:'crit',        name:'Crit Chance',  desc:'+5% crit chance/level',    max:5, unique:false },
     { id:'volatility',  name:'Volatility',   desc:'Burning enemies explode',  max:5, unique:true  },
@@ -225,7 +227,7 @@ export const QUEST_DEFS = Object.fromEntries(
 
 // ── XP thresholds ─────────────────────────────────────────────────────────────
 export const PILOT_XP_PER_RANK  = [0,300,600,1000,1500,2200,3000,4000,5500,7500];
-export const TURRET_XP_PER_RANK = [0,250,550,1000,1800,3000];
+export const TURRET_XP_PER_RANK = [0, 250, 550, 1000, 1800, 3000, 5000]; // rank 6 = prestige
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 export const SLOT_W        = 52;
