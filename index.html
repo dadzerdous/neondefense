@@ -462,16 +462,17 @@
 
   #closeSkill {
     font-family: 'Orbitron', monospace;
-    font-size: 10px;
-    color: rgba(255,255,255,0.25);
+    font-size: 12px;
+    color: var(--cyan);
     border: none;
-    border-top: 1px solid rgba(255,255,255,0.06);
-    background: transparent;
-    padding: 14px;
+    border-top: 2px solid rgba(0,245,255,0.2);
+    background: rgba(0,245,255,0.05);
+    padding: 16px;
     cursor: pointer;
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     width: 100%;
     flex-shrink: 0;
+    font-weight: 700;
   }
 
   /* Game Over / Boss screens */
@@ -558,15 +559,15 @@
   /* Boss health */
   #bossHpBar {
     position: absolute;
-    top: 70px;
+    top: 68px;
     left: 50%;
     transform: translateX(-50%);
-    width: 300px;
+    width: min(340px, 88%);
     display: none;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    z-index: 15;
+    gap: 6px;
+    z-index: 25;
     pointer-events: none;
   }
   #bossHpLabel {
@@ -636,7 +637,7 @@
 <div id="chainPopup"></div>
 
 <!-- Heat bar -->
-<div id="heatBar">
+<div id="heatBar" style="display:none">
   <div id="heatLabel">BEAM HEAT</div>
   <div id="heatTrack"><div id="heatFill" style="width:0%"></div></div>
 </div>
@@ -727,7 +728,7 @@
   <!-- Tab buttons -->
   <div style="display:flex;gap:0;border:1px solid rgba(0,245,255,0.25);flex-shrink:0;margin-bottom:16px;">
     <button id="tabPlay"   onclick="splashTab('play')"   style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;padding:10px 20px;border:none;background:var(--cyan);color:#000;cursor:pointer;font-weight:700;">PLAY</button>
-    <button id="tabSkills" onclick="splashTab('skills')" style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;padding:10px 20px;border:none;background:transparent;color:var(--cyan);cursor:pointer;font-weight:700;">SKILLS</button>
+    
     <button id="tabHow"    onclick="splashTab('how')"    style="font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;padding:10px 20px;border:none;background:transparent;color:var(--cyan);cursor:pointer;font-weight:700;">HOW TO PLAY</button>
   </div>
 
@@ -743,22 +744,6 @@
       onmouseout="this.style.color='rgba(255,34,68,0.4)';this.style.borderColor='rgba(255,34,68,0.3)'">
       RESET PROGRESS
     </button>
-  </div>
-
-  <!-- SKILLS panel (menu version - full drawer reused) -->
-  <div id="panelSkills" style="display:none;width:min(480px,94%);flex:1;overflow:hidden;display:none;flex-direction:column;">
-    <div style="display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.08);flex-shrink:0;">
-      <button class="skill-tab kinetic active" id="mskKinetic" onclick="menuSkillTab('kinetic')">KINETIC</button>
-      <button class="skill-tab energy"         id="mskEnergy"  onclick="menuSkillTab('energy')">ENERGY</button>
-      <button class="skill-tab plasma"         id="mskPlasma"  onclick="menuSkillTab('plasma')">PLASMA</button>
-      <button class="skill-tab pilot"          id="mskPilot"   onclick="menuSkillTab('pilot')">PILOT</button>
-    </div>
-    <div class="skill-xp-bar">
-      <div class="skill-xp-label" id="menuXpLabel"></div>
-      <div class="skill-xp-track"><div class="skill-xp-fill" id="menuXpFill"></div></div>
-    </div>
-    <div id="menuSkillGrid" style="flex:1;overflow-y:auto;padding:10px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;align-content:start;-webkit-overflow-scrolling:touch;max-height:45vh;"></div>
-    <button onclick="splashTab('play')" style="font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;margin:8px;padding:12px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.4);cursor:pointer;">BACK</button>
   </div>
 
   <!-- HOW TO PLAY panel (hidden by default) -->

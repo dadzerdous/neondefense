@@ -80,6 +80,7 @@ export function draw(meta) {
   if (input.dragging) drawTurret(input.mouseX, input.mouseY, input.dragging, false);
   drawHoverTooltip();
   drawChainTimer();
+  drawTutorialHints(meta);
 }
 
 // ── Starfield ─────────────────────────────────────────────────────────────────
@@ -393,19 +394,72 @@ function drawPanelBackground() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, panelTop, screen.W, screen.H - panelTop);
 
-  // Base line
+  // Defense line -- dashed with text inline
+  const lineY = panelTop;
+  const label = ' DEFENSE LINE ';
+  ctx.save();
+  ctx.font = '8px "Orbitron"';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const labelW = ctx.measureText(label).width + 12;
+  const cx = screen.W / 2;
+
+  // Left dash segment
   ctx.strokeStyle = 'rgba(0,245,255,0.25)';
   ctx.lineWidth = 1;
   ctx.setLineDash([6, 6]);
-  ctx.beginPath(); ctx.moveTo(0, panelTop); ctx.lineTo(screen.W, panelTop); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, lineY); ctx.lineTo(cx - labelW/2, lineY); ctx.stroke();
+  // Right dash segment
+  ctx.beginPath(); ctx.moveTo(cx + labelW/2, lineY); ctx.lineTo(screen.W, lineY); ctx.stroke();
   ctx.setLineDash([]);
 
-  // Defense line label
+  // Label
+  ctx.fillStyle = 'rgba(0,245,255,0.45)';
+  ctx.fillText(label, cx, lineY);
+  ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+
+  // Heat bar -- centered between defense line and rails
+  const railY   = getPanelTop() - RAIL_W - 14;
+  const heatMidY= panelTop + (railY - panelTop) / 2;
+  drawHeatBar(heatMidY);
+}
+
+function drawHeatBar(centerY) {
+  const barW = 180;
+  const barH = 4;
+  const cx   = screen.W / 2;
+  const x    = cx - barW / 2;
+  const y    = centerY - barH / 2;
+  const pct  = run.heat / 100;
+
   ctx.save();
-  ctx.font = '8px "Orbitron"';
-  ctx.textAlign = 'left';
-  ctx.fillStyle = 'rgba(0,245,255,0.3)';
-  ctx.fillText('DEFENSE LINE', 10, panelTop - RAIL_W - 18);
+
+  // Label
+  ctx.font = '7px "Orbitron"';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = run.overheated ? '#ff2244' : 'rgba(255,0,204,0.5)';
+  ctx.fillText(run.overheated ? 'OVERHEATED' : 'BEAM HEAT', cx, y - 5);
+
+  // Track
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.beginPath();
+  ctx.roundRect(x, y, barW, barH, 2);
+  ctx.fill();
+
+  // Fill
+  if (pct > 0) {
+    const fillColor = run.overheated
+      ? '#ff2244'
+      : `hsl(${180 - pct * 180}, 100%, 60%)`;
+    ctx.fillStyle = fillColor;
+    ctx.shadowBlur = 6; ctx.shadowColor = fillColor;
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW * pct, barH, 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
   ctx.restore();
 }
 
@@ -573,7 +627,53 @@ function drawFloaters() {
   ctx.textAlign = 'left';
 }
 
-// ── Chain timer arc ───────────────────────────────────────────────────────────
+// ── Tutorial flash hints ──────────────────────────────────────────────────────
+export function drawTutorialHints(meta) {
+  const hasEverBought  = meta.lifetime?.kinetic?.bought > 0 || meta.lifetime?.energy?.bought > 0 || meta.lifetime?.plasma?.bought > 0;
+  const hasEverPlaced  = combat.frameCount > 0 && (board.rails.some(s=>s) || hasEverBought);
+  const t              = combat.frameCount;
+
+  if (!hasEverBought) {
+    // Flash the BUY button area
+    const pulse = (Math.sin(t * 0.1) + 1) / 2;
+    const buyBtn = document.querySelector('.btn-kinetic');
+    if (buyBtn) {
+      buyBtn.style.boxShadow = `0 0 ${8 + pulse*12}px rgba(0,245,255,${0.4+pulse*0.5})`;
+      buyBtn.style.borderColor = `rgba(0,245,255,${0.6+pulse*0.4})`;
+    }
+  } else {
+    const buyBtn = document.querySelector('.btn-kinetic');
+    if (buyBtn) { buyBtn.style.boxShadow = ''; buyBtn.style.borderColor = ''; }
+  }
+
+  // Flash empty hangar slots and show DRAG hint until first turret placed
+  if (hasEverBought && !board.rails.some(s => s) && board.hangar.some(s => s)) {
+    const pulse = (Math.sin(t * 0.12) + 1) / 2;
+    ctx.save();
+    ctx.globalAlpha = 0.3 + pulse * 0.4;
+    ctx.font = 'bold 11px "Orbitron"';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#00f5ff';
+    ctx.shadowBlur = 10; ctx.shadowColor = '#00f5ff';
+    // Arrow pointing from hangar up to rails
+    const hangarMid = getSlotPos(0).x + (SLOT_W * VISIBLE_HANGAR + SLOT_GAP * (VISIBLE_HANGAR-1)) / 2;
+    const railMid   = getRailPos(0, board.rails.length).y + RAIL_W / 2;
+    const hangarTop = getSlotPos(0).y;
+    ctx.fillText('DRAG TO RAILS', screen.W/2, hangarTop - 16);
+    ctx.restore();
+
+    // Flash empty rail slots
+    board.rails.forEach((slot, i) => {
+      if (slot) return;
+      const p = getRailPos(i, board.rails.length);
+      ctx.save();
+      ctx.globalAlpha = 0.15 + pulse * 0.25;
+      ctx.fillStyle = '#00f5ff';
+      ctx.fillRect(p.x, p.y, RAIL_W, RAIL_W);
+      ctx.restore();
+    });
+  }
+}
 // Drawn on canvas over the HUD chain block.
 // Position is read from the DOM element once and cached.
 let chainBlockPos = null;

@@ -76,7 +76,10 @@ function update() {
   updateBullets(meta, onEnemyKill);
   updateEnemies(meta, onEnemyKill, onBaseHit);
   updateEnemyBullets(onBaseHit);
-  if (combat.boss) updateBoss(meta, onWallHit, onBaseHit, onBossKill);
+  if (combat.boss) {
+    updateBoss(meta, onWallHit, onBaseHit, onBossKill);
+    if (combat.boss) updateBossHP(combat.boss.hp / combat.boss.maxHp * 100);
+  }
   updateIonStorm();
   updateParticles();
   updateFloaters();

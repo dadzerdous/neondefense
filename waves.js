@@ -97,7 +97,10 @@ export function checkWaveComplete(meta, wave, onComplete) {
   if (combat.enemiesSpawned < combat.enemiesThisWave) return false;
   if (combat.enemies.length > 0) return false;
 
-  combat.waveComplete = true;
+  combat.waveComplete    = true;
+  combat.bullets         = [];
+  combat.enemyBullets    = [];
+  if (combat.arcTargets) combat.arcTargets = [];
 
   // Clean wave bonus (full shields)
   if (run.shields >= 100) {

@@ -15,9 +15,13 @@ export function getHangarCount(meta) { return hasPilotSkill(meta, 'pr9') ? 12 : 
 export function getMaxLevel(meta) { return hasPilotSkill(meta, 'pr7') ? 4 : 3; }
 
 export function getRailPos(i, railCount) {
-  const total = railCount * (RAIL_W + RAIL_GAP) - RAIL_GAP;
-  // Sit turrets ABOVE the panel line, in the play area
-  const y = getPanelTop() - RAIL_W - 14;
+  const total   = railCount * (RAIL_W + RAIL_GAP) - RAIL_GAP;
+  const panelTop= getPanelTop();
+  // Defense zone: from panelTop up to panelTop - RAIL_W - 14
+  // Center the rail slot block in that vertical space
+  const zoneH   = RAIL_W + 28; // a bit of breathing room
+  const zoneTop = panelTop - zoneH;
+  const y       = zoneTop + (zoneH - RAIL_W) / 2;
   return { x: screen.W/2 - total/2 + i*(RAIL_W + RAIL_GAP), y };
 }
 
