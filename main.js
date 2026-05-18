@@ -209,6 +209,8 @@ function startGame() {
 }
 
 function initRun() {
+  meta.totalRuns = (meta.totalRuns || 0) + 1;
+  saveMeta(meta);
   const startCredits = 50 + (hasPilotSkill(meta, 'pr1') ? 30 : 0);
   const startShields = 100 + (hasPilotSkill(meta, 'pr5') ? 10 : 0);
   const railCount    = getRailCount(meta);
@@ -247,10 +249,13 @@ function quitToMenu() {
 }
 
 function updateSplashStats() {
-  const r = document.getElementById('splashRank');
-  const h = document.getElementById('splashHigh');
-  if (r) r.textContent = meta.pilotRank;
-  if (h) h.textContent = meta.highScore || '--';
+  const s = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  s('splashRank',  meta.pilotRank);
+  s('splashHigh',  meta.highScore || '--');
+  s('splashRuns',  meta.totalRuns || 0);
+  s('splashKRank', 'R' + (meta.turretRank?.kinetic || 1));
+  s('splashERank', 'R' + (meta.turretRank?.energy  || 1));
+  s('splashPRank', 'R' + (meta.turretRank?.plasma  || 1));
 }
 
 // ── Wire HTML buttons ─────────────────────────────────────────────────────────

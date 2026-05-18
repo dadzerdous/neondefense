@@ -419,10 +419,9 @@ function drawPanelBackground() {
   ctx.textBaseline = 'alphabetic';
   ctx.restore();
 
-  // Heat bar -- centered between defense line and rails
-  const railY   = getPanelTop() - RAIL_W - 14;
-  const heatMidY= panelTop + (railY - panelTop) / 2;
-  drawHeatBar(heatMidY);
+  // Heat bar -- sits just below the defense line, in the panel
+  const heatBarY = panelTop + 18;
+  drawHeatBar(heatBarY);
 }
 
 function drawHeatBar(centerY) {
@@ -629,20 +628,21 @@ function drawFloaters() {
 
 // ── Tutorial flash hints ──────────────────────────────────────────────────────
 export function drawTutorialHints(meta) {
-  const hasEverBought  = meta.lifetime?.kinetic?.bought > 0 || meta.lifetime?.energy?.bought > 0 || meta.lifetime?.plasma?.bought > 0;
+  // Flash stops as soon as credits drop below starting amount (first purchase)
+  const startCredits = 50;
+  const hasEverBought = run.credits < startCredits || board.hangar.some(s => s) || board.rails.some(s => s);
   const hasEverPlaced  = combat.frameCount > 0 && (board.rails.some(s=>s) || hasEverBought);
   const t              = combat.frameCount;
 
   if (!hasEverBought) {
-    // Flash the BUY button area
-    const pulse = (Math.sin(t * 0.1) + 1) / 2;
-    const buyBtn = document.querySelector('.btn-kinetic');
+    const pulse  = (Math.sin(t * 0.1) + 1) / 2;
+    const buyBtn = document.getElementById('buyBtn');
     if (buyBtn) {
-      buyBtn.style.boxShadow = `0 0 ${8 + pulse*12}px rgba(0,245,255,${0.4+pulse*0.5})`;
-      buyBtn.style.borderColor = `rgba(0,245,255,${0.6+pulse*0.4})`;
+      buyBtn.style.boxShadow   = `0 0 ${8 + pulse*14}px rgba(0,245,255,${0.5+pulse*0.5})`;
+      buyBtn.style.borderColor = `rgba(0,245,255,${0.7+pulse*0.3})`;
     }
   } else {
-    const buyBtn = document.querySelector('.btn-kinetic');
+    const buyBtn = document.getElementById('buyBtn');
     if (buyBtn) { buyBtn.style.boxShadow = ''; buyBtn.style.borderColor = ''; }
   }
 
